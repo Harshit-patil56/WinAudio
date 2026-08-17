@@ -309,11 +309,47 @@ function connectWebSocket() {
     });
 }
 
+// ── Screen WakeLock Management ──────────────────────────────────────────────
+let wakeLock = null;
+
+async function acquireWakeLock() {
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } catch (err) {
+            console.log('[WinAudio] Screen WakeLock unavailable:', err);
+        }
+    }
+}
+
+function releaseWakeLock() {
+    if (wakeLock) {
+        wakeLock.release().catch(() => {});
+        wakeLock = null;
+    }
+}
+
+// ── Lifecycle & Visibility Auto-Resume ──────────────────────────────────────
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+        if (audioCtx && audioCtx.state === 'suspended' && isStreaming) {
+            try {
+                await audioCtx.resume();
+            } catch(e) {}
+        }
+        if (isStreaming && !wakeLock) {
+            await acquireWakeLock();
+        }
+    }
+});
+
 // ── Start / Stop Streaming ──────────────────────────────────────────────────
 async function startStreaming() {
     try {
         await initAudioEngine();
         await connectWebSocket();
+        await acquireWakeLock();
     } catch (err) {
         console.error('[WinAudio] Streaming start error:', err);
         alert('Could not connect to PC Audio server: ' + err.message);
@@ -323,6 +359,8 @@ async function startStreaming() {
 
 function stopStreaming() {
     isStreaming = false;
+    releaseWakeLock();
+
     if (websocket) {
         try { websocket.close(); } catch(e) {}
         websocket = null;
@@ -342,21 +380,36 @@ function stopStreaming() {
     bufferVal.innerText = '0.0 ms';
 }
 
+// ── Volume Control (Logarithmic Acoustic Curve + Persistence) ───────────────
+function setVolume(val, persist = true) {
+    volumeVal.innerText = `${val}%`;
+    volumeSlider.value = val;
+    volumeSlider.style.setProperty('--slider-percent', `${val}%`);
+    if (gainNode) {
+        const acousticGain = Math.pow(val / 100, 2);
+        gainNode.gain.setValueAtTime(acousticGain, audioCtx ? audioCtx.currentTime : 0);
+    }
+    if (persist) {
+        localStorage.setItem('winaudio_volume', val);
+    }
+}
+
+volumeSlider.addEventListener('input', (e) => {
+    setVolume(e.target.value, true);
+});
+
+// Restore saved volume
+const savedVolume = localStorage.getItem('winaudio_volume');
+if (savedVolume !== null) {
+    setVolume(savedVolume, false);
+}
+
 // ── Controls ────────────────────────────────────────────────────────────────
 toggleBtn.addEventListener('click', async () => {
     if (!isStreaming) {
         await startStreaming();
     } else {
         stopStreaming();
-    }
-});
-
-volumeSlider.addEventListener('input', (e) => {
-    const val = e.target.value;
-    volumeVal.innerText = `${val}%`;
-    e.target.style.setProperty('--slider-percent', `${val}%`);
-    if (gainNode) {
-        gainNode.gain.setValueAtTime(val / 100, audioCtx ? audioCtx.currentTime : 0);
     }
 });
 
