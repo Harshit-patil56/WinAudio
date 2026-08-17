@@ -24,41 +24,58 @@ def find_adb_path():
             return p
     return None
 
-def setup_adb_port_forward(port=8080):
+def get_adb_device():
     """
-    Sets up ADB port forwarding (adb forward tcp:PORT tcp:PORT) for zero-latency USB connection.
-    Returns (success, message_or_device_id).
+    Returns (adb_bin, device_id) if a USB-debuggable device is connected, else (None, None).
+    Does NOT run forward/reverse — just detects.
     """
     adb_bin = find_adb_path()
+    if not adb_bin:
+        return None, None
+    try:
+        res = subprocess.run([adb_bin, "devices"], capture_output=True, text=True, timeout=5)
+        for line in res.stdout.splitlines()[1:]:
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[1] == "device":
+                return adb_bin, parts[0]
+    except Exception:
+        pass
+    return None, None
+
+def setup_adb_port_forward(port=8080):
+    """
+    Sets up ADB REVERSE port forwarding:
+      adb reverse tcp:<port> tcp:<port>
+
+    This allows the phone to open http://localhost:<port> and have it
+    tunneled through the USB cable to the PC server on that port.
+    Returns (success, message).
+    """
+    adb_bin, device_id = get_adb_device()
+
     if not adb_bin:
         logger.info("ADB executable not found in PATH or standard SDK paths.")
         return False, "ADB not found"
 
+    if not device_id:
+        logger.info("ADB found, but no USB device attached with USB Debugging enabled.")
+        return False, "No USB device connected"
+
     try:
-        # Check connected devices
-        res = subprocess.run([adb_bin, "devices"], capture_output=True, text=True, timeout=5)
-        lines = [line.strip() for line in res.stdout.splitlines() if line.strip()]
-        
-        devices = []
-        for line in lines[1:]: # Skip 'List of devices attached'
-            parts = line.split()
-            if len(parts) >= 2 and parts[1] == "device":
-                devices.append(parts[0])
-
-        if not devices:
-            logger.info("ADB found, but no USB devices attached in debugging mode.")
-            return False, "No USB devices connected via ADB"
-
-        device_id = devices[0]
-        # Execute port forward
-        fwd_res = subprocess.run([adb_bin, "forward", f"tcp:{port}", f"tcp:{port}"], capture_output=True, text=True, timeout=5)
-        if fwd_res.returncode == 0:
-            logger.info(f"Successfully configured ADB USB port forward tcp:{port} for device {device_id}")
-            return True, f"ADB USB connected ({device_id})"
+        # adb reverse makes phone's localhost:<port> → PC's localhost:<port>
+        rev_res = subprocess.run(
+            [adb_bin, "reverse", f"tcp:{port}", f"tcp:{port}"],
+            capture_output=True, text=True, timeout=5
+        )
+        if rev_res.returncode == 0:
+            logger.info(f"ADB reverse tunnel active: phone localhost:{port} → PC:{port} (device: {device_id})")
+            return True, device_id
         else:
-            return False, f"ADB forward error: {fwd_res.stderr.strip()}"
+            err = rev_res.stderr.strip() or rev_res.stdout.strip()
+            logger.warning(f"ADB reverse failed: {err}")
+            return False, f"ADB reverse error: {err}"
     except Exception as e:
-        logger.warning(f"Error executing ADB setup: {e}")
+        logger.warning(f"Error running ADB reverse: {e}")
         return False, str(e)
 
 def get_network_ip_addresses():

@@ -65,17 +65,17 @@ class WinAudioNetworkServer:
         self.host = host
         self.port = port
         self.web_dir = os.path.abspath(web_dir)
-        self.app = web.Application()
+        self.app = None   # Created lazily inside run_server() in the correct event loop
         self.runner = None
         self.site = None
         self.loop = None
 
         # Connected client registries
-        self.clients = {}  # ws_response -> ClientHandler
-        self.pcs = set()   # RTCPeerConnection instances
+        self.clients = {}      # ws_response -> ClientHandler
+        self.client_ips = {}   # ws_response -> remote_ip string
+        self.client_modes = {} # ws_response -> 'usb' | 'wifi' (client-reported)
+        self.pcs = set()       # RTCPeerConnection instances
         self.webrtc_tracks = set()  # WinAudioTrack instances
-
-        self._setup_routes()
 
     def prepare_port(self):
         actual_port = find_available_port(self.host, self.port)
@@ -107,6 +107,7 @@ class WinAudioNetworkServer:
         return f.getvalue()
 
     def _setup_routes(self):
+        """Register URL routes on self.app. Must be called after self.app is created."""
         self.app.router.add_get('/', self._handle_index)
         self.app.router.add_get('/ws', self._handle_ws)
         self.app.router.add_post('/offer', self._handle_offer)
@@ -133,10 +134,21 @@ class WinAudioNetworkServer:
             }
         )
 
+    def get_connection_status(self):
+        """Returns tuple (mode, remote_ip) where mode is 'usb', 'wifi', or 'none'.
+        Mode is now sourced from the client-reported JSON message (accurate for ADB tunnels)."""
+        if not self.clients:
+            return "none", None
+        # Prefer client-reported mode (set by browser via JSON message on connect)
+        for ws, mode in list(self.client_modes.items()):
+            return mode, self.client_ips.get(ws, "connected")
+        return "wifi", "connected"
+
     async def _handle_ws(self, request):
         ws = web.WebSocketResponse(heartbeat=15.0)
         await ws.prepare(request)
 
+        client_ip = request.remote or "unknown"
         try:
             transport = request.transport
             if transport:
@@ -149,19 +161,38 @@ class WinAudioNetworkServer:
         handler = ClientHandler(ws, self.loop)
         handler.start()
         self.clients[ws] = handler
-        logger.info(f"Active WebSocket audio client connected (Total: {len(self.clients)})")
+        self.client_ips[ws] = client_ip
+        # Mode defaults to wifi until client sends its self-reported mode message
+        self.client_modes[ws] = "wifi"
+        logger.info(f"WebSocket client connected from {client_ip} (Total: {len(self.clients)})")
 
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.TEXT:
-                    if msg.data == 'ping':
+                    data = msg.data
+                    if data == 'ping':
                         await ws.send_str('pong')
+                    else:
+                        # Try to parse JSON mode report from browser
+                        try:
+                            import json as _json
+                            parsed = _json.loads(data)
+                            if parsed.get('type') == 'mode':
+                                reported = parsed.get('mode', 'wifi')
+                                self.client_modes[ws] = reported
+                                logger.info(f"Client self-reported connection mode: {reported} (from {client_ip})")
+                        except Exception:
+                            pass
                 elif msg.type == WSMsgType.ERROR:
                     logger.debug(f"WS error: {ws.exception()}")
         finally:
             handler.stop()
             if ws in self.clients:
                 del self.clients[ws]
+            if ws in self.client_ips:
+                del self.client_ips[ws]
+            if ws in self.client_modes:
+                del self.client_modes[ws]
             logger.info("WebSocket audio client disconnected")
 
         return ws
@@ -239,6 +270,10 @@ class WinAudioNetworkServer:
                     pass
 
     async def run_server(self):
+        # Create web.Application HERE so it belongs to this event loop (fixes aiohttp loop mismatch)
+        self.app = web.Application()
+        self._setup_routes()
+
         self.loop = asyncio.get_running_loop()
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
@@ -246,7 +281,7 @@ class WinAudioNetworkServer:
         await self.site.start()
         logger.info(f"WinAudio WebRTC & HTTP Server active on http://{self.host}:{self.port}")
 
-        # Keep server running
+        # Keep server running indefinitely
         while True:
             await asyncio.sleep(3600)
 

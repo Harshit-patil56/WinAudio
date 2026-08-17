@@ -281,6 +281,12 @@ function connectWebSocket() {
             toggleBtn.classList.add('active');
             isStreaming = true;
 
+            // Tell the server our true connection mode (USB vs Wi-Fi)
+            // USB = phone opened http://localhost:xxxx (ADB reverse tunnel)
+            // Wi-Fi = phone opened http://192.168.x.x:xxxx
+            const connectionMode = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'usb' : 'wifi';
+            websocket.send(JSON.stringify({ type: 'mode', mode: connectionMode }));
+
             if (workletNode) {
                 workletNode.port.postMessage({ type: 'RESET' });
                 workletNode.port.postMessage({ type: 'SET_TARGET_MS', targetMs: targetBufferMs });
