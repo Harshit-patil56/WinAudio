@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#161617">
+    <title>WinAudio | Smartphone PC Speaker Receiver</title>
+    <meta name="description" content="Turn your smartphone into a low-latency wireless & USB PC speaker.">
+    <!-- Apple SF Pro Font Family -->
+    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/sf-pro-display">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%230a84ff'/%3E%3Crect x='10' y='14' width='36' height='72' rx='14' fill='%23ffffff'/%3E%3Ccircle cx='28' cy='31' r='7' fill='%230a84ff'/%3E%3Ccircle cx='28' cy='58' r='13' fill='%230a84ff'/%3E%3Ccircle cx='28' cy='58' r='6.5' fill='%23ffffff'/%3E%3Crect x='54' y='14' width='36' height='72' rx='14' fill='%23ffffff'/%3E%3Ccircle cx='72' cy='31' r='7' fill='%230a84ff'/%3E%3Ccircle cx='72' cy='58' r='13' fill='%230a84ff'/%3E%3Ccircle cx='72' cy='58' r='6.5' fill='%23ffffff'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='26' fill='%230a84ff'/%3E%3Crect x='10' y='14' width='36' height='72' rx='14' fill='%23ffffff'/%3E%3Ccircle cx='28' cy='31' r='7' fill='%230a84ff'/%3E%3Ccircle cx='28' cy='58' r='13' fill='%230a84ff'/%3E%3Ccircle cx='28' cy='58' r='6.5' fill='%23ffffff'/%3E%3C/svg%3E">
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-badge">
+                <!-- Apple SF Symbol: hifispeaker.2.fill (Official Apple Stereo Receiver) -->
+                <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Left Hi-Fi Speaker -->
+                    <rect x="2.5" y="4.5" width="12" height="23" rx="4.5" fill="#ffffff"/>
+                    <circle cx="8.5" cy="10" r="2.2" fill="#0a84ff"/>
+                    <circle cx="8.5" cy="18.5" r="4.2" fill="#0a84ff"/>
+                    <circle cx="8.5" cy="18.5" r="2.1" fill="#ffffff"/>
+                    
+                    <!-- Right Hi-Fi Speaker -->
+                    <rect x="17.5" y="4.5" width="12" height="23" rx="4.5" fill="#ffffff"/>
+                    <circle cx="23.5" cy="10" r="2.2" fill="#0a84ff"/>
+                    <circle cx="23.5" cy="18.5" r="4.2" fill="#0a84ff"/>
+                    <circle cx="23.5" cy="18.5" r="2.1" fill="#ffffff"/>
+                </svg>
+            </div>
+            <h1 class="title">WinAudio Receiver</h1>
+        </header>
+
+        <!-- Status Card with Apple Pill Badge -->
+        <div class="status-card" id="statusCard">
+            <div class="status-left">
+                <div class="pulse-dot" id="statusDot"></div>
+                <div class="status-text">
+                    <span class="status-title" id="statusTitle">Disconnected</span>
+                    <span class="status-sub" id="statusSub">Tap below to connect</span>
+                </div>
+            </div>
+            <div class="connection-badge pill-badge" id="transportBadge">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                <span>USB / Wi-Fi</span>
+            </div>
+        </div>
+
+        <!-- Mode Selector Component with Apple Sliding Indicator -->
+        <div class="mode-selector-box">
+            <div class="mode-label">Select Connection Mode</div>
+            <div class="mode-tabs" id="modeTabs">
+                <div class="mode-indicator" id="modeIndicator"></div>
+                <button class="mode-tab active pill-tab" data-mode="usb" data-index="0" id="modeUsb">
+                    <span class="mode-icon">
+                        <!-- Apple SF Symbol: bolt.fill -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                    </span>
+                    <div class="mode-text">
+                        <span class="mode-title">USB Cable</span>
+                        <span class="mode-desc">~8-12 ms</span>
+                    </div>
+                </button>
+                <button class="mode-tab pill-tab" data-mode="wifi" data-index="1" id="modeWifi">
+                    <span class="mode-icon">
+                        <!-- Apple SF Symbol: wifi -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                            <circle cx="12" cy="20" r="1" fill="currentColor"></circle>
+                        </svg>
+                    </span>
+                    <div class="mode-text">
+                        <span class="mode-title">Wi-Fi</span>
+                        <span class="mode-desc">~18-25 ms</span>
+                    </div>
+                </button>
+                <button class="mode-tab pill-tab" data-mode="stable" data-index="2" id="modeStable">
+                    <span class="mode-icon">
+                        <!-- Apple SF Symbol: shield.fill -->
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 15l-4-4 1.41-1.41L11 13.17l5.59-5.59L18 9l-7 7z"/>
+                        </svg>
+                    </span>
+                    <div class="mode-text">
+                        <span class="mode-title">High Stability</span>
+                        <span class="mode-desc">~40 ms</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Audio Frequency Visualizer (20-Bar Speaking Mode) -->
+        <div class="visualizer-box" id="visualizerCard">
+            <div class="bar-visualizer" id="barVisualizer"></div>
+        </div>
+
+        <!-- Main Action Button (Apple Capsule Pill Button) -->
+        <button class="main-btn apple-pill-btn" id="toggleBtn">
+            <span class="btn-icon" id="btnIcon">
+                <!-- Apple Speaker Broadcast Icon -->
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+            </span>
+            <span id="btnText">Start PC Speaker Stream</span>
+        </button>
+
+        <!-- Apple iOS Volume Slider Component with Min/Max Glyphs -->
+        <div class="volume-control">
+            <div class="control-label">
+                <span>Output Volume</span>
+                <span id="volumeVal">100%</span>
+            </div>
+            <div class="slider-wrapper">
+                <!-- SF Symbol: speaker.fill (Min Volume) -->
+                <span class="slider-glyph min-glyph" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                    </svg>
+                </span>
+                
+                <input type="range" id="volumeSlider" min="0" max="100" value="100" style="--slider-percent: 100%;">
+
+                <!-- SF Symbol: speaker.wave.3.fill (Max Volume) -->
+                <span class="slider-glyph max-glyph" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+            </div>
+        </div>
+
+        <!-- Statistics Grid (Clean Minimalist Cards) -->
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-val" id="latencyVal">-- ms</div>
+                <div class="stat-lbl">Target Delay</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val" id="bufferVal">0.0 ms</div>
+                <div class="stat-lbl">Audio Buffer</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val" id="sampleRateVal">48 kHz</div>
+                <div class="stat-lbl">Sample Rate</div>
+            </div>
+        </div>
+
+
+        <!-- Hidden WebRTC Audio Output Element -->
+        <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
