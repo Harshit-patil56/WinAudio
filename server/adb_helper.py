@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import socket
 import subprocess
@@ -7,14 +8,39 @@ import logging
 logger = logging.getLogger("WinAudio.ADB")
 
 def find_adb_path():
-    """Look for adb in PATH, common Android SDK locations, or local directory."""
+    """Look for bundled adb first, then executable directory, project root, and finally PATH / SDK."""
+    # 1. PyInstaller bundled temp extraction dir (_MEIPASS)
+    if hasattr(sys, '_MEIPASS'):
+        for sub in ["platform-tools", ""]:
+            cand = os.path.join(sys._MEIPASS, sub, "adb.exe") if sub else os.path.join(sys._MEIPASS, "adb.exe")
+            if os.path.exists(cand):
+                return cand
+
+    # 2. Directory containing executable or script, and project root
+    search_dirs = []
+    if getattr(sys, 'frozen', False):
+        search_dirs.append(os.path.dirname(os.path.abspath(sys.executable)))
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    search_dirs.append(this_dir)
+    search_dirs.append(os.path.dirname(this_dir))  # Project root
+    search_dirs.append(os.getcwd())
+
+    for d in search_dirs:
+        for sub in ["platform-tools", "bin", ""]:
+            cand = os.path.join(d, sub, "adb.exe") if sub else os.path.join(d, "adb.exe")
+            if os.path.exists(cand):
+                return cand
+
+    # 3. System PATH
     adb_cmd = shutil.which("adb")
     if adb_cmd:
         return adb_cmd
 
-    # Check common Windows locations
+    # 4. Common Windows SDK locations
     user_home = os.path.expanduser("~")
     common_paths = [
+        os.path.join(user_home, "Downloads", "platform-tools-latest-windows", "platform-tools", "adb.exe"),
+        os.path.join(user_home, "Downloads", "platform-tools", "adb.exe"),
         os.path.join(user_home, "AppData", "Local", "Android", "Sdk", "platform-tools", "adb.exe"),
         r"C:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe",
         r"C:\Android\platform-tools\adb.exe",
@@ -36,11 +62,30 @@ def get_adb_device():
         res = subprocess.run([adb_bin, "devices"], capture_output=True, text=True, timeout=5)
         for line in res.stdout.splitlines()[1:]:
             parts = line.strip().split()
-            if len(parts) >= 2 and parts[1] == "device":
-                return adb_bin, parts[0]
+            if len(parts) >= 2:
+                if parts[1] == "device":
+                    return adb_bin, parts[0]
+                elif parts[1] == "unauthorized":
+                    return adb_bin, "unauthorized"
     except Exception:
         pass
-    return None, None
+    return adb_bin, None
+
+_cached_adb_device = (None, None)
+_last_adb_check = 0
+
+def get_cached_adb_device(cache_ttl=2.0):
+    """
+    Returns (adb_bin, device_id) with short TTL caching to prevent
+    repeated subprocess spawning on frequent status checks.
+    """
+    import time
+    global _cached_adb_device, _last_adb_check
+    now = time.time()
+    if now - _last_adb_check > cache_ttl:
+        _cached_adb_device = get_adb_device()
+        _last_adb_check = now
+    return _cached_adb_device
 
 def setup_adb_port_forward(port=8080):
     """

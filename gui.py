@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-WinAudio - Native Windows 11 Desktop Control Center
-Strictly follows Microsoft Fluent Design System & Windows 11 Design Principles.
+WinAudio - Windows 11 Fluent Design System (WinUI 3) Desktop Control Center
+Crafted with Windows 11 Dark Mode Aesthetics, Dynamic Multi-Harmonic Visualizer,
+WinUI 3 Segmented QR Code Controls (Wi-Fi Network vs USB Localhost), and Persistent System Tray.
 """
 import os
 import sys
@@ -30,40 +31,46 @@ if sys.platform == 'win32':
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 logger = logging.getLogger("WinAudio.GUI")
 
-# ── Microsoft Windows 11 Fluent Design System Color Tokens ───────────────────
-MICA_BASE_BG     = "#202020"  # Windows 11 Mica Canvas (Dark Mode)
-CARD_BG         = "#2B2B2B"  # Layer 1 Surface Card
-CARD_BORDER     = "#383838"  # 1px Surface Stroke
-CONTROL_BG      = "#323232"  # Layer 2 Interactive Controls
-CONTROL_BORDER  = "#3E3E3E"
-FLUENT_ACCENT   = "#60CDFF"  # Windows 11 Accent Blue (Dark Mode)
-FLUENT_ACCENT_HOVER = "#75D4FF"
-FLUENT_PURPLE   = "#BF5AF2"  # Harmonic Wave 2 (Fluent Violet)
-FLUENT_TEAL     = "#70FFD2"  # Harmonic Wave 3 (Mint / Shimmer)
-FLUENT_RED      = "#FF99A4"  # Fluent Stop / Alert
-FLUENT_RED_HOVER = "#FFAEB7"
-FLUENT_GREEN    = "#6CCB5F"  # Fluent Success
-TEXT_PRIMARY    = "#FFFFFF"
-TEXT_SECONDARY  = "#A0A0A0"
+# ── Windows 11 Fluent Design System (WinUI 3) Tokens ─────────────────────────
+MICA_BG          = "#202020"  # Windows 11 Dark Mode Canvas (Mica Base)
+CARD_BG          = "#2B2B2B"  # WinUI 3 Layer 1 Card Surface
+CARD_BORDER      = "#383838"  # 1px Subtle Surface Stroke
+CONTROL_BG       = "#2F2F2F"  # WinUI 3 Standard Button (Rest)
+CONTROL_BORDER   = "#3D3D3D"  # WinUI 3 Button Stroke
+CONTROL_HOVER    = "#383838"  # WinUI 3 Standard Button (Hover)
 
-# Fluent Geometry Standards
-RADIUS_CARD    = 8   # Top-level containers & cards (8px standard)
-RADIUS_CONTROL = 4   # Buttons, inputs, and controls (4px standard)
-RADIUS_PILL    = 13  # Fully rounded status badge capsule
+# WinUI 3 Accent Colors (Dark Mode)
+WIN_ACCENT       = "#60CDFF"  # Windows 11 Accent Blue (Dark Mode)
+WIN_ACCENT_HOVER = "#75D4FF"  # Windows 11 Accent Hover
+WIN_ACCENT_TEXT  = "#000000"  # WinUI 3 Design Kit: Black text on Accent Blue
+WIN_DANGER       = "#C42B1C"  # Windows 11 Critical / Stop Button
+WIN_DANGER_HOVER = "#D83B01"
+WIN_SUCCESS      = "#6CCB5F"  # Windows 11 Green
+WIN_PURPLE       = "#BF5AF2"  # Visualizer Harmonic 2
+WIN_TEAL         = "#70FFD2"  # Visualizer Harmonic 3
+
+TEXT_PRIMARY     = "#FFFFFF"  # Primary Label
+TEXT_SECONDARY   = "#A0A0A0"  # Secondary Label
+TEXT_TERTIARY    = "#707070"  # Tertiary Label
+
+# WinUI 3 Geometry Standards
+RADIUS_CARD    = 8   # Windows 11 Card Radius (8px standard)
+RADIUS_CONTROL = 4   # Windows 11 Buttons, Inputs & Controls (strictly 4px)
+RADIUS_PILL    = 12  # Windows 11 InfoBadge Capsule
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 def generate_fluent_icon(size=64):
-    """Generates an authentic Fluent / Apple Hi-Fi stereo receiver icon."""
+    """Generates an authentic Windows 11 Fluent stereo receiver icon."""
     img = Image.new('RGBA', (size, size), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Blue Squircle Background
-    corner = int(size * 0.25)
-    draw.rounded_rectangle([2, 2, size - 2, size - 2], radius=corner, fill="#0A84FF")
+    # Windows 11 Squircle Background
+    corner = int(size * 0.24)
+    draw.rounded_rectangle([2, 2, size - 2, size - 2], radius=corner, fill="#0078D4")
 
-    # Dual Speakers (White with blue drivers)
+    # Dual Speakers (Pure White enclosures with Fluent Blue drivers)
     pad = int(size * 0.12)
     spk_w = int(size * 0.32)
     spk_h = int(size * 0.70)
@@ -80,8 +87,8 @@ def generate_fluent_icon(size=64):
     tw_r = int(spk_w * 0.20)
     wf_r = int(spk_w * 0.35)
     lcx = int((lx0 + lx1) / 2)
-    draw.ellipse([lcx - tw_r, ly0 + int(spk_h * 0.24) - tw_r, lcx + tw_r, ly0 + int(spk_h * 0.24) + tw_r], fill="#0A84FF")
-    draw.ellipse([lcx - wf_r, ly0 + int(spk_h * 0.65) - wf_r, lcx + wf_r, ly0 + int(spk_h * 0.65) + wf_r], fill="#0A84FF")
+    draw.ellipse([lcx - tw_r, ly0 + int(spk_h * 0.24) - tw_r, lcx + tw_r, ly0 + int(spk_h * 0.24) + tw_r], fill="#0078D4")
+    draw.ellipse([lcx - wf_r, ly0 + int(spk_h * 0.65) - wf_r, lcx + wf_r, ly0 + int(spk_h * 0.65) + wf_r], fill="#0078D4")
     draw.ellipse([lcx - int(wf_r * 0.5), ly0 + int(spk_h * 0.65) - int(wf_r * 0.5), lcx + int(wf_r * 0.5), ly0 + int(spk_h * 0.65) + int(wf_r * 0.5)], fill="#FFFFFF")
 
     # Right Speaker
@@ -93,8 +100,8 @@ def generate_fluent_icon(size=64):
 
     # Tweeter & Woofer (Right)
     rcx = int((rx0 + rx1) / 2)
-    draw.ellipse([rcx - tw_r, ry0 + int(spk_h * 0.24) - tw_r, rcx + tw_r, ry0 + int(spk_h * 0.24) + tw_r], fill="#0A84FF")
-    draw.ellipse([rcx - wf_r, ry0 + int(spk_h * 0.65) - wf_r, rcx + wf_r, ry0 + int(spk_h * 0.65) + wf_r], fill="#0A84FF")
+    draw.ellipse([rcx - tw_r, ry0 + int(spk_h * 0.24) - tw_r, rcx + tw_r, ry0 + int(spk_h * 0.24) + tw_r], fill="#0078D4")
+    draw.ellipse([rcx - wf_r, ry0 + int(spk_h * 0.65) - wf_r, rcx + wf_r, ry0 + int(spk_h * 0.65) + wf_r], fill="#0078D4")
     draw.ellipse([rcx - int(wf_r * 0.5), ry0 + int(spk_h * 0.65) - int(wf_r * 0.5), rcx + int(wf_r * 0.5), ry0 + int(spk_h * 0.65) + int(wf_r * 0.5)], fill="#FFFFFF")
 
     return img
@@ -102,9 +109,11 @@ def generate_fluent_icon(size=64):
 class WinAudioGUI(ctk.CTk):
     def __init__(self, port=8080):
         super().__init__()
-
         self.port = port
-        self.web_dir = os.path.join(os.path.dirname(__file__), "web")
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            self.web_dir = os.path.join(sys._MEIPASS, "web")
+        else:
+            self.web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
         
         # Audio & Server Core
         self.server = WinAudioNetworkServer(host="0.0.0.0", port=self.port, web_dir=self.web_dir)
@@ -116,17 +125,22 @@ class WinAudioGUI(ctk.CTk):
         self.is_streaming = False
         self.tray_icon = None
 
+        # QR Mode & URLs
+        self.qr_mode = "wifi"  # "wifi" or "usb"
+        self.mobile_url = f"http://127.0.0.1:{self.port}"
+        self.usb_url = f"http://localhost:{self.port}"
+
         # ── Waveform Animation State ─────────────────────────────────────────
         self.wave_phase = 0.0
         self.current_amp = 0.05
         self.target_amp  = 0.05
         self.rolling_peak = 0.15
 
-        # Window Setup
+        # Window Setup (Windows 11 Fluent Sizing & Spacing)
         self.title("WinAudio Control Center")
-        self.geometry("740x590")
+        self.geometry("770x620")
         self.resizable(False, False)
-        self.configure(fg_color=MICA_BASE_BG)
+        self.configure(fg_color=MICA_BG)
 
         # Generate & Set App Icon
         self._setup_app_icon()
@@ -134,13 +148,16 @@ class WinAudioGUI(ctk.CTk):
         # Build Fluent UI
         self._build_ui()
 
+        # Initialize System Tray Icon early (Industry Standard lifecycle)
+        self._init_tray_icon()
+
         # Start Server & Capture automatically
         self.start_server()
 
-        # Start Harmonic Waveform Animation Loop (40 FPS)
+        # Start Multi-Harmonic Waveform Animation Loop (40 FPS)
         self._poll_vu_meter()
 
-        # Handle window close (minimize to tray)
+        # Handle window close (minimize to system tray)
         self.protocol("WM_DELETE_WINDOW", self.on_close_window)
 
     def _setup_app_icon(self):
@@ -162,7 +179,7 @@ class WinAudioGUI(ctk.CTk):
 
     def _build_ui(self):
         # Main Padding Container
-        self.main_container = ctk.CTkFrame(self, fg_color=MICA_BASE_BG, corner_radius=0)
+        self.main_container = ctk.CTkFrame(self, fg_color=MICA_BG, corner_radius=0)
         self.main_container.pack(fill="both", expand=True, padx=16, pady=14)
 
         # ── Header Bar ───────────────────────────────────────────────────────
@@ -177,13 +194,13 @@ class WinAudioGUI(ctk.CTk):
         )
         self.title_lbl.pack(side="left")
 
-        # Fully Rounded Status Pill Badge (Radius 13px)
+        # Windows 11 InfoBadge Status Pill
         self.status_pill = ctk.CTkFrame(
             self.header_frame,
-            fg_color="#1A3B22",
+            fg_color="#102B19",
             corner_radius=RADIUS_PILL,
             border_width=1,
-            border_color="#2D6638"
+            border_color="#1B4A2B"
         )
         self.status_pill.pack(side="right")
 
@@ -191,7 +208,7 @@ class WinAudioGUI(ctk.CTk):
             self.status_pill,
             text="● Active on Port 8080",
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold"),
-            text_color=FLUENT_GREEN,
+            text_color=WIN_SUCCESS,
             padx=12,
             pady=4
         )
@@ -201,16 +218,16 @@ class WinAudioGUI(ctk.CTk):
         self.content_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
         self.content_frame.pack(fill="both", expand=True)
 
-        # Left: QR Code Card
+        # Left: QR Code Card (WinUI 3 Layer 1 Card)
         self.qr_card = ctk.CTkFrame(
             self.content_frame,
-            width=260,
+            width=285,
             fg_color=CARD_BG,
             border_color=CARD_BORDER,
             border_width=1,
             corner_radius=RADIUS_CARD
         )
-        self.qr_card.pack(side="left", fill="y", padx=(0, 10), pady=0)
+        self.qr_card.pack(side="left", fill="y", padx=(0, 12), pady=0)
         self.qr_card.pack_propagate(False)
 
         self.qr_title = ctk.CTkLabel(
@@ -222,17 +239,50 @@ class WinAudioGUI(ctk.CTk):
         self.qr_title.pack(pady=(12, 4))
 
         self.qr_canvas = ctk.CTkLabel(self.qr_card, text="", fg_color="transparent")
-        self.qr_canvas.pack(pady=2)
+        self.qr_canvas.pack(pady=(0, 4))
 
-        # Inset Card: Real-time Connection Mode (USB vs Wi-Fi Detection)
+        # ── Windows 11 Segmented QR Toggle Buttons ───────────────────────────
+        self.qr_toggle_frame = ctk.CTkFrame(self.qr_card, fg_color="transparent")
+        self.qr_toggle_frame.pack(fill="x", padx=14, pady=(4, 8))
+
+        self.qr_btn_wifi = ctk.CTkButton(
+            self.qr_toggle_frame,
+            text="Wi-Fi (Network)",
+            fg_color=WIN_ACCENT,
+            hover_color=WIN_ACCENT_HOVER,
+            text_color=WIN_ACCENT_TEXT,
+            border_width=0,
+            font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold"),
+            height=30,
+            corner_radius=RADIUS_CONTROL,
+            command=lambda: self._set_qr_mode("wifi")
+        )
+        self.qr_btn_wifi.pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        self.qr_btn_usb = ctk.CTkButton(
+            self.qr_toggle_frame,
+            text="USB (Localhost)",
+            fg_color=CONTROL_BG,
+            hover_color=CONTROL_HOVER,
+            text_color=TEXT_PRIMARY,
+            border_width=1,
+            border_color=CONTROL_BORDER,
+            font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
+            height=30,
+            corner_radius=RADIUS_CONTROL,
+            command=lambda: self._set_qr_mode("usb")
+        )
+        self.qr_btn_usb.pack(side="right", fill="x", expand=True, padx=(4, 0))
+
+        # Inset Card: Real-time Connection Mode (Live Detection)
         self.mode_status_card = ctk.CTkFrame(
             self.qr_card,
             fg_color="#202020",
-            border_color="#383838",
+            border_color=CARD_BORDER,
             border_width=1,
             corner_radius=RADIUS_CONTROL
         )
-        self.mode_status_card.pack(fill="x", padx=12, pady=(6, 10))
+        self.mode_status_card.pack(fill="x", padx=14, pady=(2, 10))
 
         self.mode_icon_lbl = ctk.CTkLabel(
             self.mode_status_card,
@@ -254,7 +304,7 @@ class WinAudioGUI(ctk.CTk):
         self.right_col = ctk.CTkFrame(self.content_frame, fg_color="transparent")
         self.right_col.pack(side="right", fill="both", expand=True)
 
-        # ── Card 1: Connection Endpoints ─────────────────────────────────────
+        # ── Card 1: Connection Endpoints (WinUI 3 Layer 1 Card) ───────────────
         self.conn_card = ctk.CTkFrame(
             self.right_col,
             fg_color=CARD_BG,
@@ -270,16 +320,29 @@ class WinAudioGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=13, weight="bold"),
             text_color=TEXT_PRIMARY
         )
-        self.conn_hdr.pack(anchor="w", padx=14, pady=(10, 6))
+        self.conn_hdr.pack(anchor="w", padx=16, pady=(10, 6))
 
         # Network IP (Wi-Fi / LAN) Link Row
         self.wifi_row = ctk.CTkFrame(self.conn_card, fg_color="transparent")
-        self.wifi_row.pack(fill="x", padx=14, pady=3)
+        self.wifi_row.pack(fill="x", padx=16, pady=3)
 
-        self.wifi_lbl = ctk.CTkLabel(self.wifi_row, text="Network IP:", font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold"), text_color=FLUENT_ACCENT, width=80, anchor="w")
+        self.wifi_lbl = ctk.CTkLabel(
+            self.wifi_row,
+            text="Network IP:",
+            font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold"),
+            text_color=WIN_ACCENT,
+            width=80,
+            anchor="w"
+        )
         self.wifi_lbl.pack(side="left")
 
-        self.wifi_url_lbl = ctk.CTkLabel(self.wifi_row, text="http://192.168.0.101:8080", font=ctk.CTkFont(family="Segoe UI Variable Text", size=11), text_color=TEXT_PRIMARY, anchor="w")
+        self.wifi_url_lbl = ctk.CTkLabel(
+            self.wifi_row,
+            text="http://192.168.0.101:8080",
+            font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
+            text_color=TEXT_PRIMARY,
+            anchor="w"
+        )
         self.wifi_url_lbl.pack(side="left", fill="x", expand=True)
 
         self.copy_wifi_btn = ctk.CTkButton(
@@ -291,7 +354,8 @@ class WinAudioGUI(ctk.CTk):
             fg_color=CONTROL_BG,
             border_color=CONTROL_BORDER,
             border_width=1,
-            hover_color="#444444",
+            hover_color=CONTROL_HOVER,
+            text_color=TEXT_PRIMARY,
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
             command=self._copy_wifi_url
         )
@@ -299,12 +363,25 @@ class WinAudioGUI(ctk.CTk):
 
         # Localhost (USB / Direct) Link Row
         self.usb_row = ctk.CTkFrame(self.conn_card, fg_color="transparent")
-        self.usb_row.pack(fill="x", padx=14, pady=(3, 10))
+        self.usb_row.pack(fill="x", padx=16, pady=(3, 10))
 
-        self.usb_lbl = ctk.CTkLabel(self.usb_row, text="Localhost:", font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold"), text_color="#30D158", width=80, anchor="w")
+        self.usb_lbl = ctk.CTkLabel(
+            self.usb_row,
+            text="Localhost:",
+            font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold"),
+            text_color=WIN_SUCCESS,
+            width=80,
+            anchor="w"
+        )
         self.usb_lbl.pack(side="left")
 
-        self.usb_url_lbl = ctk.CTkLabel(self.usb_row, text="http://localhost:8080", font=ctk.CTkFont(family="Segoe UI Variable Text", size=11), text_color=TEXT_PRIMARY, anchor="w")
+        self.usb_url_lbl = ctk.CTkLabel(
+            self.usb_row,
+            text="http://localhost:8080",
+            font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
+            text_color=TEXT_PRIMARY,
+            anchor="w"
+        )
         self.usb_url_lbl.pack(side="left", fill="x", expand=True)
 
         self.copy_usb_btn = ctk.CTkButton(
@@ -316,7 +393,8 @@ class WinAudioGUI(ctk.CTk):
             fg_color=CONTROL_BG,
             border_color=CONTROL_BORDER,
             border_width=1,
-            hover_color="#444444",
+            hover_color=CONTROL_HOVER,
+            text_color=TEXT_PRIMARY,
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
             command=self._copy_usb_url
         )
@@ -338,7 +416,7 @@ class WinAudioGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=13, weight="bold"),
             text_color=TEXT_PRIMARY
         )
-        self.audio_hdr.pack(anchor="w", padx=14, pady=(10, 4))
+        self.audio_hdr.pack(anchor="w", padx=16, pady=(10, 4))
 
         self.device_lbl = ctk.CTkLabel(
             self.audio_card,
@@ -346,7 +424,7 @@ class WinAudioGUI(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
             text_color=TEXT_SECONDARY
         )
-        self.device_lbl.pack(anchor="w", padx=14, pady=(0, 6))
+        self.device_lbl.pack(anchor="w", padx=16, pady=(0, 6))
 
         # Transmission Quality Radio Buttons
         self.quality_var = tk.StringVar(value="pcm16")
@@ -358,11 +436,12 @@ class WinAudioGUI(ctk.CTk):
             value="pcm16",
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
             text_color=TEXT_PRIMARY,
-            fg_color=FLUENT_ACCENT,
+            fg_color=WIN_ACCENT,
+            border_color=CONTROL_BORDER,
             radiobutton_width=16,
             radiobutton_height=16
         )
-        self.rad_pcm16.pack(anchor="w", padx=14, pady=2)
+        self.rad_pcm16.pack(anchor="w", padx=16, pady=2)
 
         self.rad_opus = ctk.CTkRadioButton(
             self.audio_card,
@@ -371,15 +450,16 @@ class WinAudioGUI(ctk.CTk):
             value="opus",
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=11),
             text_color=TEXT_PRIMARY,
-            fg_color=FLUENT_ACCENT,
+            fg_color=WIN_ACCENT,
+            border_color=CONTROL_BORDER,
             radiobutton_width=16,
             radiobutton_height=16
         )
-        self.rad_opus.pack(anchor="w", padx=14, pady=2)
+        self.rad_opus.pack(anchor="w", padx=16, pady=2)
 
         # ── Dynamic Multi-Harmonic Acoustic Waveform Canvas ──────────────────
         self.vu_frame = ctk.CTkFrame(self.audio_card, fg_color="transparent")
-        self.vu_frame.pack(fill="x", padx=14, pady=(8, 10))
+        self.vu_frame.pack(fill="x", padx=16, pady=(8, 12))
 
         self.vu_hdr_lbl = ctk.CTkLabel(
             self.vu_frame,
@@ -389,13 +469,13 @@ class WinAudioGUI(ctk.CTk):
         )
         self.vu_hdr_lbl.pack(anchor="w", pady=(0, 4))
 
-        # Dark Canvas for Harmonic Sine Waves
+        # Windows 11 Dark Canvas for Multi-Harmonic Splines
         self.vu_canvas = tk.Canvas(
             self.vu_frame,
             height=46,
             bg="#1E1E20",
             highlightthickness=1,
-            highlightbackground="#363638"
+            highlightbackground=CARD_BORDER
         )
         self.vu_canvas.pack(fill="x")
 
@@ -406,9 +486,9 @@ class WinAudioGUI(ctk.CTk):
         self.toggle_btn = ctk.CTkButton(
             self.toolbar_frame,
             text="Stop Server",
-            fg_color=FLUENT_RED,
-            hover_color=FLUENT_RED_HOVER,
-            text_color="#000000",
+            fg_color=WIN_DANGER,
+            hover_color=WIN_DANGER_HOVER,
+            text_color="#FFFFFF",
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=12, weight="bold"),
             height=32,
             corner_radius=RADIUS_CONTROL,
@@ -422,7 +502,7 @@ class WinAudioGUI(ctk.CTk):
             fg_color=CONTROL_BG,
             border_color=CONTROL_BORDER,
             border_width=1,
-            hover_color="#444444",
+            hover_color=CONTROL_HOVER,
             text_color=TEXT_PRIMARY,
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=12),
             height=32,
@@ -433,12 +513,12 @@ class WinAudioGUI(ctk.CTk):
 
         # ── ADB USB Status Row (Live Indicator) ──────────────────────────────
         self.adb_row = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        self.adb_row.pack(fill="x", pady=(6, 0))
+        self.adb_row.pack(fill="x", pady=(8, 0))
 
         self.adb_badge = ctk.CTkFrame(
             self.adb_row,
-            fg_color="#2A2A2A",
-            border_color="#3A3A3A",
+            fg_color=CARD_BG,
+            border_color=CARD_BORDER,
             border_width=1,
             corner_radius=RADIUS_PILL
         )
@@ -458,12 +538,60 @@ class WinAudioGUI(ctk.CTk):
             self.adb_row,
             text="Plug in phone + enable USB Debugging to use ADB tunnel",
             font=ctk.CTkFont(family="Segoe UI Variable Text", size=10),
-            text_color="#666666"
+            text_color=TEXT_TERTIARY
         )
         self.adb_hint.pack(side="left", padx=(10, 0))
 
         # Start live ADB polling (every 3 seconds)
         self._poll_adb_status()
+
+    def _set_qr_mode(self, mode):
+        """Switches between Wi-Fi and USB QR code modes using Windows 11 button states."""
+        self.qr_mode = mode
+        if mode == "wifi":
+            self.qr_btn_wifi.configure(
+                fg_color=WIN_ACCENT,
+                text_color=WIN_ACCENT_TEXT,
+                hover_color=WIN_ACCENT_HOVER,
+                border_width=0,
+                font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold")
+            )
+            self.qr_btn_usb.configure(
+                fg_color=CONTROL_BG,
+                text_color=TEXT_PRIMARY,
+                hover_color=CONTROL_HOVER,
+                border_width=1,
+                border_color=CONTROL_BORDER,
+                font=ctk.CTkFont(family="Segoe UI Variable Text", size=11)
+            )
+        else:
+            self.qr_btn_usb.configure(
+                fg_color=WIN_ACCENT,
+                text_color=WIN_ACCENT_TEXT,
+                hover_color=WIN_ACCENT_HOVER,
+                border_width=0,
+                font=ctk.CTkFont(family="Segoe UI Variable Text", size=11, weight="bold")
+            )
+            self.qr_btn_wifi.configure(
+                fg_color=CONTROL_BG,
+                text_color=TEXT_PRIMARY,
+                hover_color=CONTROL_HOVER,
+                border_width=1,
+                border_color=CONTROL_BORDER,
+                font=ctk.CTkFont(family="Segoe UI Variable Text", size=11)
+            )
+        self._render_current_qr()
+
+    def _render_current_qr(self):
+        """Generates and renders the QR code based on the active mode."""
+        target_url = self.mobile_url if self.qr_mode == "wifi" else self.usb_url
+        try:
+            qr_bytes = self.server.generate_qr_code(target_url)
+            pil_img = Image.open(io.BytesIO(qr_bytes)).resize((180, 180), Image.Resampling.NEAREST)
+            self.qr_image_tk = ImageTk.PhotoImage(pil_img)
+            self.qr_canvas.configure(image=self.qr_image_tk)
+        except Exception as e:
+            logger.warning(f"Failed to generate QR code: {e}")
 
     def _copy_wifi_url(self):
         url = self.wifi_url_lbl.cget("text")
@@ -482,18 +610,14 @@ class WinAudioGUI(ctk.CTk):
     def _update_qr_and_urls(self):
         ip_addresses = get_network_ip_addresses()
         primary_ip = ip_addresses[0]['ip'] if ip_addresses else '127.0.0.1'
-        mobile_url = f"http://{primary_ip}:{self.port}"
-        usb_url = f"http://localhost:{self.port}"
+        self.mobile_url = f"http://{primary_ip}:{self.port}"
+        self.usb_url = f"http://localhost:{self.port}"
 
-        self.wifi_url_lbl.configure(text=mobile_url)
-        self.usb_url_lbl.configure(text=usb_url)
+        self.wifi_url_lbl.configure(text=self.mobile_url)
+        self.usb_url_lbl.configure(text=self.usb_url)
         self.status_dot_lbl.configure(text=f"● Active on Port {self.port}")
 
-        # Render QR Code Image
-        qr_bytes = self.server.generate_qr_code(mobile_url)
-        pil_img = Image.open(io.BytesIO(qr_bytes)).resize((180, 180), Image.Resampling.NEAREST)
-        self.qr_image_tk = ImageTk.PhotoImage(pil_img)
-        self.qr_canvas.configure(image=self.qr_image_tk)
+        self._render_current_qr()
 
     def start_server(self):
         if self.is_streaming:
@@ -506,7 +630,7 @@ class WinAudioGUI(ctk.CTk):
         self.audio_capture = WASAPICapture(
             sample_rate=48000,
             channels=2,
-            frames_per_buffer=256,
+            frames_per_buffer=512,
             on_audio_chunk=self.on_pcm_chunk
         )
         self.audio_capture.start()
@@ -528,9 +652,9 @@ class WinAudioGUI(ctk.CTk):
         self.server_thread.start()
 
         self.is_streaming = True
-        self.toggle_btn.configure(text="Stop Server", fg_color=FLUENT_RED, hover_color=FLUENT_RED_HOVER)
-        self.status_pill.configure(fg_color="#1A3B22", border_color="#2D6638")
-        self.status_dot_lbl.configure(text=f"● Active on Port {self.port}", text_color=FLUENT_GREEN)
+        self.toggle_btn.configure(text="Stop Server", fg_color=WIN_DANGER, hover_color=WIN_DANGER_HOVER, text_color="#FFFFFF")
+        self.status_pill.configure(fg_color="#102B19", border_color="#1B4A2B")
+        self.status_dot_lbl.configure(text=f"● Active on Port {self.port}", text_color=WIN_SUCCESS)
         # Delay QR + URL update slightly so the server loop is fully ready
         self.after(800, self._update_qr_and_urls)
 
@@ -549,8 +673,8 @@ class WinAudioGUI(ctk.CTk):
             asyncio.run_coroutine_threadsafe(self.server.cleanup(), self.server_loop)
 
         self.is_streaming = False
-        self.toggle_btn.configure(text="Start Server", fg_color=FLUENT_ACCENT, hover_color=FLUENT_ACCENT_HOVER)
-        self.status_pill.configure(fg_color="#2A2A2A", border_color="#3E3E3E")
+        self.toggle_btn.configure(text="Start Server", fg_color=WIN_ACCENT, hover_color=WIN_ACCENT_HOVER, text_color=WIN_ACCENT_TEXT)
+        self.status_pill.configure(fg_color="#2B2B2B", border_color="#383838")
         self.status_dot_lbl.configure(text="● Stopped", text_color=TEXT_SECONDARY)
 
     def toggle_server(self):
@@ -563,6 +687,8 @@ class WinAudioGUI(ctk.CTk):
     def _poll_adb_status(self):
         def _check():
             adb_bin, device_id = get_adb_device()
+            if adb_bin and device_id and device_id != "unauthorized":
+                setup_adb_port_forward(port=self.port)
             self.after(0, self._update_adb_badge, adb_bin, device_id)
 
         # Run in background thread so it doesn't block the GUI
@@ -571,24 +697,31 @@ class WinAudioGUI(ctk.CTk):
 
     def _update_adb_badge(self, adb_bin, device_id):
         if not adb_bin:
-            self.adb_badge.configure(fg_color="#2A2A2A", border_color="#3A3A3A")
+            self.adb_badge.configure(fg_color=CARD_BG, border_color=CARD_BORDER)
             self.adb_lbl.configure(
                 text="⬤  USB (ADB): Not installed",
-                text_color="#666666"
+                text_color=TEXT_TERTIARY
             )
             self.adb_hint.configure(text="Install Android Platform Tools and add to PATH")
         elif not device_id:
-            self.adb_badge.configure(fg_color="#2A2A2A", border_color="#3A3A3A")
+            self.adb_badge.configure(fg_color=CARD_BG, border_color=CARD_BORDER)
             self.adb_lbl.configure(
                 text="⬤  USB (ADB): No device",
-                text_color="#666666"
+                text_color=TEXT_TERTIARY
             )
             self.adb_hint.configure(text="Plug in phone + enable USB Debugging  →  open http://localhost on phone")
+        elif device_id == "unauthorized":
+            self.adb_badge.configure(fg_color="#382E14", border_color="#594619")
+            self.adb_lbl.configure(
+                text="⬤  USB (ADB): Unauthorized",
+                text_color="#FFD60A"
+            )
+            self.adb_hint.configure(text="Unlock phone screen and tap 'Allow USB debugging'")
         else:
-            self.adb_badge.configure(fg_color="#142B1A", border_color="#24542E")
+            self.adb_badge.configure(fg_color="#102B19", border_color="#1B4A2B")
             self.adb_lbl.configure(
                 text=f"⬤  USB (ADB): {device_id} connected",
-                text_color="#30D158"
+                text_color=WIN_SUCCESS
             )
             self.adb_hint.configure(text="Open http://localhost on phone Chrome to use USB tunnel")
 
@@ -633,7 +766,7 @@ class WinAudioGUI(ctk.CTk):
                 # Hanning Window Envelope (pinches ends smoothly, expands center)
                 env = math.sin((i / num_pts) * math.pi) ** 1.35
 
-                # Wave 1 (Primary Energy: Fluent Cyan / Blue)
+                # Wave 1 (Primary Energy: Fluent Blue)
                 y1 = cy + math.sin((i / num_pts) * 4.0 * math.pi - self.wave_phase) * amp * env
                 pts_main.extend([x, y1])
 
@@ -641,70 +774,84 @@ class WinAudioGUI(ctk.CTk):
                 y2 = cy + math.sin((i / num_pts) * 6.5 * math.pi + self.wave_phase * 1.4) * (amp * 0.62) * env
                 pts_harm2.extend([x, y2])
 
-                # Wave 3 (Harmonic 3: Mint / Shimmer)
+                # Wave 3 (Harmonic 3: Mint / Teal)
                 y3 = cy + math.sin((i / num_pts) * 9.0 * math.pi - self.wave_phase * 1.9) * (amp * 0.32) * env
                 pts_harm3.extend([x, y3])
 
             # Draw smooth spline waves with layering
+            if len(pts_main) >= 4:
+                self.vu_canvas.create_line(pts_main, fill=WIN_ACCENT, width=2.0, smooth=True)
             if len(pts_harm2) >= 4:
-                self.vu_canvas.create_line(pts_harm2, fill="#7B42BC", width=1.5, smooth=True)
+                self.vu_canvas.create_line(pts_harm2, fill=WIN_PURPLE, width=1.5, smooth=True)
             if len(pts_harm3) >= 4:
-                self.vu_canvas.create_line(pts_harm3, fill="#38A888", width=1.2, smooth=True)
+                self.vu_canvas.create_line(pts_harm3, fill=WIN_TEAL, width=1.2, smooth=True)
+
         # Update Live Connection Mode Badge (USB vs Network IP)
         if self.is_streaming and self.server:
             conn_mode, conn_ip = self.server.get_connection_status()
             if conn_mode == "usb":
-                self.mode_status_card.configure(fg_color="#142B1A", border_color="#24542E")
-                self.mode_icon_lbl.configure(text="🔌 Connected: USB (Localhost)", text_color="#30D158")
+                self.mode_status_card.configure(fg_color="#102B19", border_color="#1B4A2B")
+                self.mode_icon_lbl.configure(text="⚡ Connected: USB (Localhost)", text_color=WIN_SUCCESS)
                 self.mode_detail_lbl.configure(text="ADB Reverse Tethering · Ultra-Low Latency", text_color="#A8F5B8")
             elif conn_mode == "wifi":
                 self.mode_status_card.configure(fg_color="#142638", border_color="#1E4B70")
-                self.mode_icon_lbl.configure(text=f"📶 Connected: Network ({conn_ip})", text_color=FLUENT_ACCENT)
+                self.mode_icon_lbl.configure(text=f"📶 Connected: Network ({conn_ip})", text_color=WIN_ACCENT)
                 self.mode_detail_lbl.configure(text="Local Wi-Fi Stream · Dynamic Buffer", text_color="#B5E4FF")
             else:
-                self.mode_status_card.configure(fg_color="#202020", border_color="#383838")
+                self.mode_status_card.configure(fg_color="#202020", border_color=CARD_BORDER)
                 self.mode_icon_lbl.configure(text="● Waiting for Connection", text_color=TEXT_SECONDARY)
                 self.mode_detail_lbl.configure(text="Scan QR or open link on phone", text_color=TEXT_SECONDARY)
         else:
-            self.mode_status_card.configure(fg_color="#202020", border_color="#383838")
+            self.mode_status_card.configure(fg_color="#202020", border_color=CARD_BORDER)
             self.mode_icon_lbl.configure(text="● Server Stopped", text_color=TEXT_SECONDARY)
             self.mode_detail_lbl.configure(text="Click 'Start Server' below", text_color=TEXT_SECONDARY)
 
         self.after(25, self._poll_vu_meter)  # ~40 FPS smooth sinusoidal wave
 
-    # ── System Tray Integration ──────────────────────────────────────────────
-    def minimize_to_tray(self):
-        self.withdraw()
-        self._create_tray_icon()
-
-    def _create_tray_icon(self):
+    # ── Industry-Standard System Tray Lifecycle ──────────────────────────────
+    def _init_tray_icon(self):
+        """Creates and starts the persistent system tray icon at startup."""
         if self.tray_icon:
             return
 
-        tray_image = generate_fluent_icon(64)
+        try:
+            tray_image = generate_fluent_icon(64)
 
-        menu = pystray.Menu(
-            item('Open WinAudio Control Center', self._restore_from_tray, default=True),
-            item('Copy Network Link', self._copy_wifi_url),
-            item('Copy Localhost Link', self._copy_usb_url),
-            item('Stop / Start Server', self.toggle_server),
-            pystray.Menu.SEPARATOR,
-            item('Exit', self._quit_app)
-        )
+            menu = pystray.Menu(
+                item('Open WinAudio Control Center', self._restore_from_tray, default=True),
+                item('Copy Wi-Fi Link', self._copy_wifi_url),
+                item('Copy Localhost Link', self._copy_usb_url),
+                pystray.Menu.SEPARATOR,
+                item('Stop / Start Server', self.toggle_server),
+                pystray.Menu.SEPARATOR,
+                item('Quit WinAudio', self._quit_app)
+            )
 
-        self.tray_icon = pystray.Icon("WinAudio", tray_image, "WinAudio Receiver", menu)
-        threading.Thread(target=self.tray_icon.run, daemon=True).start()
+            self.tray_icon = pystray.Icon("WinAudio", tray_image, "WinAudio Control Center", menu)
+            threading.Thread(target=self.tray_icon.run, daemon=True).start()
+        except Exception as e:
+            logger.warning(f"Could not initialize system tray: {e}")
 
-    def _restore_from_tray(self, icon=None, item=None):
-        if self.tray_icon:
-            self.tray_icon.stop()
-            self.tray_icon = None
-        self.after(0, self.deiconify)
+    def minimize_to_tray(self):
+        """Hides the window to system tray while background server keeps running."""
+        self.withdraw()
 
     def on_close_window(self):
+        """Window close ('X') handler: minimizes cleanly to tray instead of quitting."""
         self.minimize_to_tray()
 
+    def _restore_from_tray(self, icon=None, item=None):
+        """Schedules thread-safe window restoration on Tkinter main thread."""
+        self.after(0, self._do_restore)
+
+    def _do_restore(self):
+        """Restores, lifts and focuses the main control center window."""
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
     def _quit_app(self, icon=None, item=None):
+        """Completely terminates system tray, audio capture, network server, and GUI."""
         if self.tray_icon:
             try:
                 self.tray_icon.stop()

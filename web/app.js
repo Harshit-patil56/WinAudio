@@ -1,36 +1,37 @@
 // WinAudio Mobile Web Client — Low-Latency TCP WebSocket PCM Receiver with AudioWorklet
 
-let isStreaming    = false;
-let audioCtx       = null;
-let gainNode       = null;
-let analyserNode   = null;
-let workletNode    = null;
-let websocket      = null;
-let currentMode    = 'usb';
-let targetBufferMs = 20;
+let isStreaming = false;
+let audioCtx = null;
+let gainNode = null;
+let analyserNode = null;
+let workletNode = null;
+let websocket = null;
+let currentMode = 'usb';
+let targetBufferMs = 35;
 
 // DOM Elements
-const toggleBtn      = document.getElementById('toggleBtn');
-const btnIcon        = document.getElementById('btnIcon');
-const btnText        = document.getElementById('btnText');
-const statusDot      = document.getElementById('statusDot');
-const statusTitle    = document.getElementById('statusTitle');
-const statusSub      = document.getElementById('statusSub');
+const toggleBtn = document.getElementById('toggleBtn');
+const btnIcon = document.getElementById('btnIcon');
+const btnText = document.getElementById('btnText');
+const statusDot = document.getElementById('statusDot');
+const statusTitle = document.getElementById('statusTitle');
+const statusSub = document.getElementById('statusSub');
 const transportBadge = document.getElementById('transportBadge');
-const volumeSlider   = document.getElementById('volumeSlider');
+const volumeSlider = document.getElementById('volumeSlider');
 const volumeVal      = document.getElementById('volumeVal');
 const latencyVal     = document.getElementById('latencyVal');
 const bufferVal      = document.getElementById('bufferVal');
 const sampleRateVal  = document.getElementById('sampleRateVal');
+const fidelityPill   = document.querySelector('.fidelity-pill');
 
 // ── 20-Bar Apple Voice Memos Leftward Scrolling Visualizer ──────────────────
 const barVisualizerContainer = document.getElementById('barVisualizer');
-const BAR_COUNT     = 20;
-const MIN_HEIGHT    = 15;
-const MAX_HEIGHT    = 90;
-const barElements   = [];
+const BAR_COUNT = 20;
+const MIN_HEIGHT = 15;
+const MAX_HEIGHT = 90;
+const barElements = [];
 const currentHeights = new Float32Array(BAR_COUNT).fill(MIN_HEIGHT);
-const targetHeights  = new Float32Array(BAR_COUNT).fill(MIN_HEIGHT);
+const targetHeights = new Float32Array(BAR_COUNT).fill(MIN_HEIGHT);
 
 if (barVisualizerContainer) {
     barVisualizerContainer.innerHTML = '';
@@ -44,7 +45,7 @@ if (barVisualizerContainer) {
 }
 
 let freqBuffer = new Uint8Array(64);
-let timeData   = new Uint8Array(128);
+let timeData = new Uint8Array(128);
 let rollingPeak = 30.0;
 
 // Render Apple Monochrome Style Waveform Loop with Dynamic Normalization & Leftward Motion (60 FPS)
@@ -71,10 +72,10 @@ function drawVisualizer() {
 
         // 3. Dynamic non-linear range mapping (ensures peaks, valleys, and rhythm)
         const normalized = Math.min(1.0, Math.max(0.0, (avgAmp * 0.55 + peakDiff * 0.45) / (rollingPeak + 1.0)));
-        
+
         // Add subtle harmonic voice cadence variation to prevent flatline saturation
         const cadenceVar = ((freqBuffer[2] || 0) % 12) / 100.0;
-        const liveAmp    = Math.min(0.88, Math.max(0.0, Math.pow(normalized, 1.3) + cadenceVar * 0.12));
+        const liveAmp = Math.min(0.88, Math.max(0.0, Math.pow(normalized, 1.3) + cadenceVar * 0.12));
 
         // Push into rightmost bar and propagate leftward (Apple Voice Memos waterfall)
         for (let i = 0; i < BAR_COUNT - 1; i++) {
@@ -94,7 +95,7 @@ function drawVisualizer() {
 
         // Apple iOS Fluid Spring Physics
         const isAttacking = target > currentHeights[i];
-        const lerpFactor  = isAttacking ? 0.42 : 0.18;
+        const lerpFactor = isAttacking ? 0.42 : 0.18;
         currentHeights[i] += (target - currentHeights[i]) * lerpFactor;
 
         if (barElements[i]) {
@@ -105,7 +106,7 @@ function drawVisualizer() {
                 const normalized = Math.max(0, Math.min(1, (currentHeights[i] - MIN_HEIGHT) / (MAX_HEIGHT - MIN_HEIGHT)));
                 const alpha = 0.25 + normalized * 0.70;
                 barElements[i].style.backgroundColor = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-                
+
                 if (normalized > 0.60) {
                     barElements[i].style.boxShadow = `0 0 8px rgba(255, 255, 255, ${(normalized * 0.40).toFixed(2)})`;
                 } else {
@@ -135,25 +136,56 @@ function setTransportBadge(iconType, text) {
     transportBadge.innerHTML = `${iconSvg}<span>${text}</span>`;
 }
 
+// ── USB Device Status Checker ──────────────────────────────────────────────
+async function checkUsbStatus() {
+    const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (!isLocal) {
+        return { usb_connected: false, is_local: false, device_id: null };
+    }
+    try {
+        const res = await fetch('/api/usb-status', { cache: 'no-store' });
+        if (res.ok) {
+            return await res.json();
+        }
+    } catch (e) {
+        console.warn('[WinAudio] Could not query USB status:', e);
+    }
+    return { usb_connected: false, is_local: isLocal, device_id: null };
+}
+
 // ── Initial Transport Detection ─────────────────────────────────────────────
-function detectAndSetTransportBadge() {
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.42.') || hostname.startsWith('192.168.49.')) {
-        currentMode = 'usb';
-        targetBufferMs = 20;
-        setTransportBadge('usb', 'USB Mode');
-        latencyVal.innerText = '~20 ms';
-        const usbTab = document.getElementById('modeUsb');
-        if (usbTab) {
-            modeTabs.forEach(t => t.classList.remove('active'));
-            usbTab.classList.add('active');
-            updateModeIndicator(0);
+async function detectAndSetTransportBadge() {
+    const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocal) {
+        const status = await checkUsbStatus();
+        if (status.usb_connected) {
+            currentMode = 'usb';
+            targetBufferMs = 35;
+            setTransportBadge('usb', 'USB');
+            if (latencyVal) latencyVal.innerText = '~35 ms';
+            const usbTab = document.getElementById('modeUsb');
+            if (usbTab) {
+                modeTabs.forEach(t => t.classList.remove('active'));
+                usbTab.classList.add('active');
+                updateModeIndicator(0);
+            }
+        } else {
+            currentMode = 'wifi';
+            targetBufferMs = 50;
+            setTransportBadge('wifi', 'Wi-Fi');
+            if (latencyVal) latencyVal.innerText = '~50 ms';
+            const wifiTab = document.getElementById('modeWifi');
+            if (wifiTab) {
+                modeTabs.forEach(t => t.classList.remove('active'));
+                wifiTab.classList.add('active');
+                updateModeIndicator(1);
+            }
         }
     } else {
         currentMode = 'wifi';
-        targetBufferMs = 35;
-        setTransportBadge('wifi', 'Wi-Fi Mode');
-        latencyVal.innerText = '~35 ms';
+        targetBufferMs = 50;
+        setTransportBadge('wifi', 'Wi-Fi');
+        if (latencyVal) latencyVal.innerText = '~50 ms';
         const wifiTab = document.getElementById('modeWifi');
         if (wifiTab) {
             modeTabs.forEach(t => t.classList.remove('active'));
@@ -161,11 +193,11 @@ function detectAndSetTransportBadge() {
             updateModeIndicator(1);
         }
     }
-    sampleRateVal.innerText = '48.0 kHz';
-    bufferVal.innerText = '0.0 ms';
+    if (sampleRateVal) sampleRateVal.innerText = '48.0 kHz';
+    if (bufferVal) bufferVal.innerText = '0.0 ms';
 }
 
-// ── Web Audio Engine & Dual Worklet/Timeline Initialization ─────────────────
+// ── Web Audio Engine Initialization (High-Fidelity Timeline Engine) ──────────
 let nextPlayTime = 0;
 
 async function initAudioEngine() {
@@ -180,46 +212,21 @@ async function initAudioEngine() {
         analyserNode.fftSize = 128;
         analyserNode.smoothingTimeConstant = 0.4;
 
-        // Check if AudioWorklet is available (Secure Context / HTTPS / Localhost)
-        if (audioCtx.audioWorklet && typeof audioCtx.audioWorklet.addModule === 'function') {
-            try {
-                await audioCtx.audioWorklet.addModule('audio-worklet-processor.js');
-                workletNode = new AudioWorkletNode(audioCtx, 'winaudio-stream-processor');
-
-                workletNode.port.onmessage = (event) => {
-                    const msg = event.data;
-                    if (msg.type === 'STATS') {
-                        bufferVal.innerText = `${msg.bufferedMs.toFixed(1)} ms`;
-                    }
-                };
-
-                workletNode.connect(gainNode);
-            } catch (workletErr) {
-                console.warn('[WinAudio] AudioWorklet load error, using high-speed timeline engine:', workletErr);
-                workletNode = null;
-            }
-        } else {
-            console.info('[WinAudio] Insecure HTTP context detected, using high-speed timeline audio scheduler');
-            workletNode = null;
-        }
-
         // Pipe: gainNode -> analyserNode -> destination
         gainNode.connect(analyserNode);
         analyserNode.connect(audioCtx.destination);
 
-        sampleRateVal.innerText = `${(audioCtx.sampleRate / 1000).toFixed(1)} kHz`;
+        if (sampleRateVal) {
+            sampleRateVal.innerText = `${(audioCtx.sampleRate / 1000).toFixed(1)} kHz`;
+        }
     }
 
     if (audioCtx.state === 'suspended') {
         await audioCtx.resume();
     }
-
-    if (workletNode) {
-        workletNode.port.postMessage({ type: 'SET_TARGET_MS', targetMs: targetBufferMs });
-    }
 }
 
-// Fallback high-speed PCM Chunk Scheduler for HTTP mobile browsers
+// High-Fidelity Low-Latency PCM Timeline Audio Scheduler
 function schedulePCMChunk(arrayBuffer) {
     if (!audioCtx || audioCtx.state !== 'running') return;
     const int16 = new Int16Array(arrayBuffer);
@@ -227,11 +234,11 @@ function schedulePCMChunk(arrayBuffer) {
     if (numFrames === 0) return;
 
     const audioBuffer = audioCtx.createBuffer(2, numFrames, 48000);
-    const leftChannel  = audioBuffer.getChannelData(0);
+    const leftChannel = audioBuffer.getChannelData(0);
     const rightChannel = audioBuffer.getChannelData(1);
 
     for (let i = 0; i < numFrames; i++) {
-        leftChannel[i]  = int16[i * 2] / 32768.0;
+        leftChannel[i] = int16[i * 2] / 32768.0;
         rightChannel[i] = int16[i * 2 + 1] / 32768.0;
     }
 
@@ -244,25 +251,25 @@ function schedulePCMChunk(arrayBuffer) {
 
     if (nextPlayTime < now) {
         nextPlayTime = now + targetDelay;
-    } else if (nextPlayTime > now + targetDelay * 2.5) {
-        nextPlayTime = now + targetDelay; // Drain overflow
+    } else if (nextPlayTime > now + Math.max(0.120, targetDelay * 3.0)) {
+        nextPlayTime = now + targetDelay; // Drain extreme accumulation
     }
 
     source.start(nextPlayTime);
     nextPlayTime += audioBuffer.duration;
 
     const liveBufferMs = Math.max(0, (nextPlayTime - now) * 1000);
-    bufferVal.innerText = `${liveBufferMs.toFixed(1)} ms`;
+    if (bufferVal) bufferVal.innerText = `${liveBufferMs.toFixed(1)} ms`;
 }
 
 // ── Low-Latency TCP WebSocket Connection ────────────────────────────────────
 function connectWebSocket() {
     return new Promise((resolve, reject) => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl    = `${protocol}//${window.location.host}/ws`;
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
 
         if (websocket) {
-            try { websocket.close(); } catch(e) {}
+            try { websocket.close(); } catch (e) { }
             websocket = null;
         }
 
@@ -271,36 +278,36 @@ function connectWebSocket() {
         nextPlayTime = 0;
 
         websocket.onopen = () => {
-            statusDot.classList.add('active');
-            statusTitle.innerText = 'Streaming Active';
-            statusSub.innerText = 'Bit-Perfect TCP Audio (48kHz Stereo PCM)';
-            btnText.innerText = 'Stop PC Speaker Stream';
+            if (statusDot) statusDot.classList.add('active');
+            if (statusTitle) statusTitle.innerText = 'Connected';
+            if (statusSub) statusSub.innerText = 'Streaming from PC';
+            if (btnText) btnText.innerText = 'Disconnect';
             if (btnIcon) {
-                btnIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>`;
+                btnIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>`;
             }
-            toggleBtn.classList.add('active');
+            if (toggleBtn) toggleBtn.classList.add('active');
+            const pill = document.querySelector('.fidelity-pill');
+            if (pill) pill.classList.add('active');
             isStreaming = true;
 
-            // Tell the server our true connection mode (USB vs Wi-Fi)
-            // USB = phone opened http://localhost:xxxx (ADB reverse tunnel)
-            // Wi-Fi = phone opened http://192.168.x.x:xxxx
-            const connectionMode = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'usb' : 'wifi';
-            websocket.send(JSON.stringify({ type: 'mode', mode: connectionMode }));
+            // Tell the server our connection mode
+            websocket.send(JSON.stringify({ type: 'mode', mode: currentMode }));
 
-            if (workletNode) {
-                workletNode.port.postMessage({ type: 'RESET' });
-                workletNode.port.postMessage({ type: 'SET_TARGET_MS', targetMs: targetBufferMs });
-            }
             resolve();
         };
 
         websocket.onmessage = (event) => {
-            if (event.data instanceof ArrayBuffer) {
-                if (workletNode) {
-                    workletNode.port.postMessage(event.data, [event.data]);
-                } else {
-                    schedulePCMChunk(event.data);
-                }
+            if (typeof event.data === 'string') {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === 'error') {
+                        showUsbModal('Connection Notice', msg.message);
+                        stopStreaming();
+                        return;
+                    }
+                } catch (e) { }
+            } else if (event.data instanceof ArrayBuffer) {
+                schedulePCMChunk(event.data);
             }
         };
 
@@ -312,6 +319,39 @@ function connectWebSocket() {
         websocket.onclose = () => {
             stopStreaming();
         };
+    });
+}
+
+// ── Apple HIG Modal Dialog Controller ─────────────────────────────────────────
+const usbModal = document.getElementById('usbModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+function showUsbModal(title, bodyHtml) {
+    if (!usbModal) {
+        alert(bodyHtml ? bodyHtml.replace(/<[^>]*>/g, '') : title);
+        return;
+    }
+    if (modalTitle && title) modalTitle.innerText = title;
+    if (modalBody && bodyHtml) modalBody.innerHTML = bodyHtml;
+    usbModal.classList.add('active');
+    usbModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeUsbModal() {
+    if (usbModal) {
+        usbModal.classList.remove('active');
+        usbModal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+if (modalCloseBtn) {
+    modalCloseBtn.addEventListener('click', closeUsbModal);
+}
+if (usbModal) {
+    usbModal.addEventListener('click', (e) => {
+        if (e.target === usbModal) closeUsbModal();
     });
 }
 
@@ -331,7 +371,7 @@ async function acquireWakeLock() {
 
 function releaseWakeLock() {
     if (wakeLock) {
-        wakeLock.release().catch(() => {});
+        wakeLock.release().catch(() => { });
         wakeLock = null;
     }
 }
@@ -342,7 +382,7 @@ document.addEventListener('visibilitychange', async () => {
         if (audioCtx && audioCtx.state === 'suspended' && isStreaming) {
             try {
                 await audioCtx.resume();
-            } catch(e) {}
+            } catch (e) { }
         }
         if (isStreaming && !wakeLock) {
             await acquireWakeLock();
@@ -352,13 +392,32 @@ document.addEventListener('visibilitychange', async () => {
 
 // ── Start / Stop Streaming ──────────────────────────────────────────────────
 async function startStreaming() {
+    if (currentMode === 'usb') {
+        const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        if (!isLocal) {
+            showUsbModal(
+                'USB Mode Unavailable',
+                'USB mode cannot work over Wi-Fi.<br><br>Please connect your phone to PC via USB cable, enable <strong>USB Debugging</strong>, and open <strong>http://localhost:8080</strong>.'
+            );
+            return;
+        }
+        const status = await checkUsbStatus();
+        if (!status.usb_connected) {
+            showUsbModal(
+                'No USB Device Detected',
+                'USB mode requires an active USB cable connection with <strong>USB Debugging</strong> enabled.'
+            );
+            return;
+        }
+    }
+
     try {
         await initAudioEngine();
         await connectWebSocket();
         await acquireWakeLock();
     } catch (err) {
         console.error('[WinAudio] Streaming start error:', err);
-        alert('Could not connect to PC Audio server: ' + err.message);
+        showUsbModal('Connection Error', 'Could not connect to PC Audio server: ' + err.message);
         stopStreaming();
     }
 }
@@ -368,29 +427,31 @@ function stopStreaming() {
     releaseWakeLock();
 
     if (websocket) {
-        try { websocket.close(); } catch(e) {}
+        try { websocket.close(); } catch (e) { }
         websocket = null;
     }
-    if (workletNode) {
-        workletNode.port.postMessage({ type: 'RESET' });
-    }
+    nextPlayTime = 0;
 
-    statusDot.classList.remove('active');
-    statusTitle.innerText = 'Disconnected';
-    statusSub.innerText = 'Tap below to connect';
-    btnText.innerText = 'Start PC Speaker Stream';
+    if (statusDot) statusDot.classList.remove('active');
+    if (statusTitle) statusTitle.innerText = 'Ready';
+    if (statusSub) statusSub.innerText = 'Tap Connect to stream PC audio';
+    if (btnText) btnText.innerText = 'Connect';
     if (btnIcon) {
         btnIcon.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>`;
     }
-    toggleBtn.classList.remove('active');
-    bufferVal.innerText = '0.0 ms';
+    if (toggleBtn) toggleBtn.classList.remove('active');
+    const pill = document.querySelector('.fidelity-pill');
+    if (pill) pill.classList.remove('active');
+    if (bufferVal) bufferVal.innerText = '0.0 ms';
 }
 
 // ── Volume Control (Logarithmic Acoustic Curve + Persistence) ───────────────
 function setVolume(val, persist = true) {
-    volumeVal.innerText = `${val}%`;
-    volumeSlider.value = val;
-    volumeSlider.style.setProperty('--slider-percent', `${val}%`);
+    if (volumeVal) volumeVal.innerText = `${val}%`;
+    if (volumeSlider) {
+        volumeSlider.value = val;
+        volumeSlider.style.setProperty('--slider-percent', `${val}%`);
+    }
     if (gainNode) {
         const acousticGain = Math.pow(val / 100, 2);
         gainNode.gain.setValueAtTime(acousticGain, audioCtx ? audioCtx.currentTime : 0);
@@ -420,7 +481,7 @@ toggleBtn.addEventListener('click', async () => {
 });
 
 // ── Mode Selector with Direct Mode Connection Switching ─────────────────────
-const modeTabs      = document.querySelectorAll('.mode-tab');
+const modeTabs = document.querySelectorAll('.mode-tab');
 const modeIndicator = document.getElementById('modeIndicator');
 
 function updateModeIndicator(index) {
@@ -430,37 +491,48 @@ function updateModeIndicator(index) {
 
 modeTabs.forEach(tab => {
     tab.addEventListener('click', async () => {
+        const targetMode = tab.getAttribute('data-mode');
+
+        if (targetMode === 'usb') {
+            const isLocal = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+            if (!isLocal) {
+                showUsbModal(
+                    'USB Mode Unavailable',
+                    'USB mode cannot work over Wi-Fi.<br><br>Please connect your phone to PC via USB cable, enable <strong>USB Debugging</strong>, and open <strong>http://localhost:8080</strong>.'
+                );
+                return;
+            }
+
+            const status = await checkUsbStatus();
+            if (!status.usb_connected) {
+                showUsbModal(
+                    'No USB Device Detected',
+                    'USB mode requires an active USB cable connection with <strong>USB Debugging</strong> enabled.'
+                );
+                return;
+            }
+        }
+
         modeTabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        
+
         const idx = parseInt(tab.getAttribute('data-index') || '0', 10);
         updateModeIndicator(idx);
 
-        currentMode = tab.getAttribute('data-mode');
+        currentMode = targetMode;
 
         if (currentMode === 'usb') {
-            targetBufferMs = 20;
-            latencyVal.innerText = '~20 ms';
-            setTransportBadge('usb', 'USB Mode');
-        } else if (currentMode === 'wifi') {
             targetBufferMs = 35;
-            latencyVal.innerText = '~35 ms';
-            setTransportBadge('wifi', 'Wi-Fi Mode');
-        } else if (currentMode === 'stable') {
-            targetBufferMs = 70;
-            latencyVal.innerText = '~70 ms';
-            setTransportBadge('stable', 'High Stability');
+            if (latencyVal) latencyVal.innerText = '~35 ms';
+            setTransportBadge('usb', 'USB');
+        } else if (currentMode === 'wifi' || currentMode === 'stable') {
+            targetBufferMs = 50;
+            if (latencyVal) latencyVal.innerText = '~50 ms';
+            setTransportBadge('wifi', 'Wi-Fi');
         }
 
-        if (workletNode) {
-            workletNode.port.postMessage({ type: 'SET_TARGET_MS', targetMs: targetBufferMs });
-        }
-
-        // Direct connect or switch active stream
-        if (isStreaming) {
-            await connectWebSocket();
-        } else {
-            await startStreaming();
+        if (isStreaming && websocket && websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify({ type: 'mode', mode: currentMode }));
         }
     });
 });

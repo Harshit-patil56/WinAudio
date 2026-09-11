@@ -7,6 +7,7 @@ import qrcode
 from aiohttp import web, WSMsgType
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from .webrtc_track import WinAudioTrack
+from .adb_helper import get_cached_adb_device
 
 logger = logging.getLogger("WinAudio.Server")
 
@@ -110,6 +111,7 @@ class WinAudioNetworkServer:
         """Register URL routes on self.app. Must be called after self.app is created."""
         self.app.router.add_get('/', self._handle_index)
         self.app.router.add_get('/ws', self._handle_ws)
+        self.app.router.add_get('/api/usb-status', self._handle_usb_status)
         self.app.router.add_post('/offer', self._handle_offer)
         self.app.router.add_static('/', self.web_dir, show_index=True)
 
@@ -134,14 +136,34 @@ class WinAudioNetworkServer:
             }
         )
 
+    async def _handle_usb_status(self, request):
+        """Returns JSON status indicating whether a real USB connection is active."""
+        client_ip = request.remote or ""
+        is_local = client_ip in ("127.0.0.1", "::1", "localhost")
+        adb_bin, device_id = get_cached_adb_device()
+        # USB is only valid if request is routed via loopback (ADB reverse) AND a USB device is attached
+        usb_connected = bool(is_local and device_id)
+        return web.json_response({
+            "usb_connected": usb_connected,
+            "device_id": device_id,
+            "client_ip": client_ip,
+            "is_local": is_local,
+            "adb_available": bool(adb_bin)
+        }, headers={"Cache-Control": "no-cache"})
+
     def get_connection_status(self):
         """Returns tuple (mode, remote_ip) where mode is 'usb', 'wifi', or 'none'.
-        Mode is now sourced from the client-reported JSON message (accurate for ADB tunnels)."""
+        Strictly enforces that USB mode is only reported when client is local AND USB device is connected."""
         if not self.clients:
             return "none", None
-        # Prefer client-reported mode (set by browser via JSON message on connect)
         for ws, mode in list(self.client_modes.items()):
-            return mode, self.client_ips.get(ws, "connected")
+            remote = self.client_ips.get(ws, "connected")
+            if mode == 'usb':
+                is_local = remote in ('127.0.0.1', '::1', 'localhost')
+                adb_bin, device_id = get_cached_adb_device()
+                if not is_local or not device_id:
+                    return "wifi", remote
+            return mode, remote
         return "wifi", "connected"
 
     async def _handle_ws(self, request):
@@ -149,6 +171,7 @@ class WinAudioNetworkServer:
         await ws.prepare(request)
 
         client_ip = request.remote or "unknown"
+        is_local = client_ip in ("127.0.0.1", "::1", "localhost")
         try:
             transport = request.transport
             if transport:
@@ -162,7 +185,7 @@ class WinAudioNetworkServer:
         handler.start()
         self.clients[ws] = handler
         self.client_ips[ws] = client_ip
-        # Mode defaults to wifi until client sends its self-reported mode message
+        # Mode defaults to wifi until client sends its verified mode message
         self.client_modes[ws] = "wifi"
         logger.info(f"WebSocket client connected from {client_ip} (Total: {len(self.clients)})")
 
@@ -179,8 +202,30 @@ class WinAudioNetworkServer:
                             parsed = _json.loads(data)
                             if parsed.get('type') == 'mode':
                                 reported = parsed.get('mode', 'wifi')
+                                if reported == 'usb':
+                                    adb_bin, device_id = get_cached_adb_device()
+                                    if not is_local:
+                                        logger.warning(f"Rejecting USB mode from non-local client {client_ip} (Wi-Fi)")
+                                        reported = 'wifi'
+                                        try:
+                                            await ws.send_str(_json.dumps({
+                                                "type": "error",
+                                                "message": "USB mode cannot be used over Wi-Fi."
+                                            }))
+                                        except Exception:
+                                            pass
+                                    elif not device_id:
+                                        logger.warning(f"Rejecting USB mode from local client {client_ip}: No USB device connected")
+                                        reported = 'wifi'
+                                        try:
+                                            await ws.send_str(_json.dumps({
+                                                "type": "error",
+                                                "message": "No USB device connected."
+                                            }))
+                                        except Exception:
+                                            pass
                                 self.client_modes[ws] = reported
-                                logger.info(f"Client self-reported connection mode: {reported} (from {client_ip})")
+                                logger.info(f"Client connection mode set to: {reported} (from {client_ip})")
                         except Exception:
                             pass
                 elif msg.type == WSMsgType.ERROR:

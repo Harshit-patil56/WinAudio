@@ -61,7 +61,7 @@ class WinAudioApp:
         self.audio_capture = WASAPICapture(
             sample_rate=48000,
             channels=2,
-            frames_per_buffer=256, # ~5.3ms buffer
+            frames_per_buffer=512, # ~10.7ms buffer
             on_audio_chunk=self.on_pcm_chunk
         )
         self.audio_capture.start()

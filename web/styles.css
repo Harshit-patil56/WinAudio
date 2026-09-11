@@ -18,18 +18,18 @@
     --system-background: #000000;
     --secondary-system-background: #1c1c1e;
     --tertiary-system-background: #2c2c2e;
-    
+
     /* Apple Grouped Backgrounds */
     --system-grouped-background: #000000;
     --secondary-grouped-background: #1c1c1e;
     --tertiary-grouped-background: #2c2c2e;
-    
+
     /* Apple Dynamic Typography (Labels) */
     --label-primary: #ffffff;
     --label-secondary: rgba(235, 235, 245, 0.60);
     --label-tertiary: rgba(235, 235, 245, 0.30);
     --label-quaternary: rgba(235, 235, 245, 0.18);
-    
+
     /* Apple Fills & Separators (HIG Specs) */
     --system-fill: rgba(120, 120, 128, 0.36);
     --secondary-system-fill: rgba(120, 120, 128, 0.32);
@@ -48,7 +48,7 @@
     --system-red: #ff453a;
     --system-teal: #64d2ff;
     --system-yellow: #ffd60a;
-    
+
     /* Apple System Grays */
     --system-gray: #8e8e93;
     --system-gray-2: #636366;
@@ -62,7 +62,7 @@
     --apple-card-border: 0.5px solid rgba(255, 255, 255, 0.05);
     --apple-card-shadow: none;
     --apple-card-radius: 12px;
-    
+
     --glow-blue: 0 4px 16px rgba(10, 132, 255, 0.35);
     --glow-green: 0 0 14px rgba(48, 209, 88, 0.45);
     --glow-red: 0 4px 16px rgba(255, 69, 58, 0.35);
@@ -117,14 +117,16 @@ body {
 .logo-badge {
     width: 66px;
     height: 66px;
-    border-radius: 17px; /* Apple Continuous Squircle */
-    background: var(--system-blue); /* Solid Apple System Blue */
+    border-radius: 17px;
+    /* Apple Continuous Squircle */
+    background: var(--system-blue);
+    /* Solid Apple System Blue */
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     /* Clean Apple Elevation & Bevel Lighting (Zero Fuzzy Glow) */
-    box-shadow: 
+    box-shadow:
         0 4px 16px rgba(0, 0, 0, 0.45),
         0 1px 3px rgba(0, 0, 0, 0.30),
         inset 0 1.2px 1px rgba(255, 255, 255, 0.45),
@@ -144,7 +146,8 @@ body {
 /* Apple Title 1: 23px Bold, -0.022em tracking, 1.22 line-height */
 .title {
     font-family: var(--font-apple-system);
-    font-size: 1.4375rem; /* 23px */
+    font-size: 1.4375rem;
+    /* 23px */
     font-weight: 700;
     line-height: 1.22;
     letter-spacing: -0.022em;
@@ -211,6 +214,7 @@ body {
         transform: translate(-50%, -50%) scale(1);
         opacity: 0.8;
     }
+
     100% {
         transform: translate(-50%, -50%) scale(3.4);
         opacity: 0;
@@ -226,7 +230,8 @@ body {
 /* Apple Headline: 16px Semibold, -0.020em tracking, 1.28 line-height */
 .status-title {
     font-family: var(--font-apple-system);
-    font-size: 1rem; /* 16px */
+    font-size: 1rem;
+    /* 16px */
     font-weight: 600;
     line-height: 1.28;
     color: var(--label-primary);
@@ -236,7 +241,8 @@ body {
 /* Apple Footnote: 13px Regular, -0.008em tracking, 1.35 line-height */
 .status-sub {
     font-family: var(--font-apple-system);
-    font-size: 0.8125rem; /* 13px */
+    font-size: 0.8125rem;
+    /* 13px */
     font-weight: 400;
     line-height: 1.35;
     color: var(--label-secondary);
@@ -246,17 +252,17 @@ body {
 /* Apple Capsule Pill Badge */
 .connection-badge.pill-badge {
     font-family: var(--font-apple-system);
-    font-size: 0.75rem; /* 12px */
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 500;
     padding: 0.32rem 0.75rem;
-    border-radius: 9999px; /* Apple Continuous Capsule Pill */
-    background: rgba(10, 132, 255, 0.15);
-    color: var(--system-blue);
-    border: 1px solid rgba(10, 132, 255, 0.3);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--label-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     letter-spacing: -0.010em;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     line-height: 1;
     white-space: nowrap;
 }
@@ -264,6 +270,7 @@ body {
 .connection-badge.pill-badge svg {
     display: block;
     flex-shrink: 0;
+    color: var(--system-blue);
 }
 
 /* Apple Segmented Control: Mode Selector */
@@ -276,7 +283,8 @@ body {
 /* Apple Inset Header: 12px Uppercase Semibold, +0.020em tracking */
 .mode-label {
     font-family: var(--font-apple-system);
-    font-size: 0.75rem; /* 12px */
+    font-size: 0.75rem;
+    /* 12px */
     color: var(--label-secondary);
     font-weight: 600;
     letter-spacing: 0.020em;
@@ -287,7 +295,7 @@ body {
 .mode-tabs {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 4px;
     background: var(--apple-card-bg);
     padding: 4px;
@@ -302,7 +310,7 @@ body {
     top: 4px;
     bottom: 4px;
     left: 4px;
-    width: calc((100% - 8px - 8px) / 3);
+    width: calc((100% - 8px - 4px) / 2);
     background: var(--tertiary-system-background);
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -371,7 +379,8 @@ body {
 /* Apple Footnote: 13px Semibold, -0.012em tracking, 1.25 line-height */
 .mode-title {
     font-family: var(--font-apple-system);
-    font-size: 0.8125rem; /* 13px */
+    font-size: 0.8125rem;
+    /* 13px */
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: -0.012em;
@@ -380,7 +389,8 @@ body {
 /* Apple Caption 2: 11px Medium, +0.005em tracking, 1.20 line-height */
 .mode-desc {
     font-family: var(--font-apple-system);
-    font-size: 0.6875rem; /* 11px */
+    font-size: 0.6875rem;
+    /* 11px */
     font-weight: 500;
     line-height: 1.20;
     color: var(--label-tertiary);
@@ -419,7 +429,8 @@ body {
 
 .bar-item {
     flex: 1;
-    height: 15%; /* minHeight 15% */
+    height: 15%;
+    /* minHeight 15% */
     background: rgba(255, 255, 255, 0.22);
     border-radius: 9999px;
     transition: background-color 0.1s ease, box-shadow 0.15s ease;
@@ -434,11 +445,13 @@ body {
     width: 100%;
     padding: 1.05rem 1.5rem;
     border: none;
-    border-radius: 9999px; /* Apple Capsule Pill Button */
+    border-radius: 9999px;
+    /* Apple Capsule Pill Button */
     background: var(--system-blue);
     color: #ffffff;
     font-family: var(--font-apple-system);
-    font-size: 1.0625rem; /* 17px */
+    font-size: 1.0625rem;
+    /* 17px */
     font-weight: 600;
     line-height: 1.30;
     letter-spacing: -0.022em;
@@ -494,7 +507,8 @@ body {
     justify-content: space-between;
     align-items: center;
     font-family: var(--font-apple-system);
-    font-size: 0.875rem; /* 14px */
+    font-size: 0.875rem;
+    /* 14px */
     color: var(--label-secondary);
     font-weight: 500;
     line-height: 1.30;
@@ -503,7 +517,8 @@ body {
 
 .control-label span:last-child {
     font-family: var(--font-apple-mono);
-    font-size: 0.9375rem; /* 15px */
+    font-size: 0.9375rem;
+    /* 15px */
     font-weight: 600;
     color: var(--label-primary);
     letter-spacing: -0.020em;
@@ -531,13 +546,11 @@ input[type=range] {
     width: 100%;
     height: 7px;
     border-radius: 9999px;
-    background: linear-gradient(
-        to right,
-        var(--system-blue) 0%,
-        var(--system-blue) var(--slider-percent, 100%),
-        rgba(120, 120, 128, 0.32) var(--slider-percent, 100%),
-        rgba(120, 120, 128, 0.32) 100%
-    );
+    background: linear-gradient(to right,
+            var(--system-blue) 0%,
+            var(--system-blue) var(--slider-percent, 100%),
+            rgba(120, 120, 128, 0.32) var(--slider-percent, 100%),
+            rgba(120, 120, 128, 0.32) 100%);
     outline: none;
     cursor: pointer;
     -webkit-appearance: none;
@@ -588,44 +601,153 @@ input[type=range]::-moz-range-thumb {
     border: 0.5px solid rgba(0, 0, 0, 0.04);
 }
 
-/* Apple Inset Grouped Grid: Statistics */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
+/* Apple Music Style Lossless Audio Indicator */
+.fidelity-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.25rem 0 0.5rem 0;
 }
 
-.stat-item {
-    background: var(--apple-card-bg);
-    border: var(--apple-card-border);
-    border-radius: var(--apple-card-radius);
-    padding: 0.85rem 0.5rem;
-    text-align: center;
-    box-shadow: var(--apple-card-shadow);
+.fidelity-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    font-family: var(--font-apple-system);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: -0.010em;
+    color: var(--label-tertiary);
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.fidelity-pill svg {
+    color: var(--system-blue);
+    flex-shrink: 0;
+}
+
+.fidelity-pill.active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--label-secondary);
+}
+
+.fidelity-pill.active svg {
+    color: var(--system-green);
+}
+
+/* ── Apple iOS HIG Alert Modal ────────────────────────────────────────────── */
+.apple-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s ease, visibility 0.22s;
+}
+
+.apple-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.apple-modal-card {
+    width: 100%;
+    max-width: 320px;
+    background: rgba(36, 36, 38, 0.92);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 0.5px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    padding: 1.5rem 1.25rem 1.25rem;
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
+    transform: scale(0.92);
+    transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-modal-overlay.active .apple-modal-card {
+    transform: scale(1);
+}
+
+.apple-modal-icon {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 2px;
-}
-
-/* Apple SF Mono: 17px Bold, -0.025em tracking, tabular numerals */
-.stat-val {
-    font-family: var(--font-apple-mono);
-    font-size: 1.0625rem; /* 17px */
-    font-weight: 700;
-    line-height: 1.20;
     color: var(--system-blue);
-    letter-spacing: -0.025em;
-    font-feature-settings: "tnum" 1;
+    margin-bottom: 0.75rem;
 }
 
-/* Apple Caption 1: 12px Medium, -0.005em tracking, 1.25 line-height */
-.stat-lbl {
+.apple-modal-title {
     font-family: var(--font-apple-system);
-    font-size: 0.75rem; /* 12px */
-    font-weight: 500;
-    line-height: 1.25;
+    font-size: 1.0625rem; /* 17px Apple Headline */
+    font-weight: 600;
+    color: var(--label-primary);
+    letter-spacing: -0.022em;
+    margin-bottom: 0.45rem;
+}
+
+.apple-modal-body {
+    font-family: var(--font-apple-system);
+    font-size: 0.84rem; /* 13.5px Apple Callout */
+    line-height: 1.45;
     color: var(--label-secondary);
-    letter-spacing: -0.005em;
+    letter-spacing: -0.010em;
+    margin-bottom: 1.25rem;
+    word-break: break-word;
+}
+
+.apple-modal-body strong {
+    color: var(--label-primary);
+    font-weight: 600;
+}
+
+.apple-modal-actions {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.apple-modal-btn.primary {
+    width: 100%;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--system-blue);
+    color: #ffffff;
+    font-family: var(--font-apple-system);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: filter 0.15s ease, transform 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.apple-modal-btn.primary:active {
+    transform: scale(0.97);
+    filter: brightness(0.85);
 }

@@ -27,10 +27,10 @@ class WASAPICapture:
     """
     Captures Windows system audio output via WASAPI Loopback with ultra-low latency.
     """
-    def __init__(self, sample_rate=48000, channels=2, frames_per_buffer=256, on_audio_chunk=None):
+    def __init__(self, sample_rate=48000, channels=2, frames_per_buffer=512, on_audio_chunk=None):
         self.sample_rate = sample_rate
         self.channels = channels
-        self.frames_per_buffer = frames_per_buffer  # 256 samples = ~5.3ms buffer at 48kHz
+        self.frames_per_buffer = frames_per_buffer  # 512 samples = ~10.7ms buffer at 48kHz
         self.on_audio_chunk = on_audio_chunk
 
 
