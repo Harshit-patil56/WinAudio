@@ -11,6 +11,7 @@ import io
 import math
 import asyncio
 import threading
+import multiprocessing
 import logging
 import tkinter as tk
 from tkinter import messagebox
@@ -148,17 +149,14 @@ class WinAudioGUI(ctk.CTk):
         # Build Fluent UI
         self._build_ui()
 
-        # Initialize System Tray Icon early (Industry Standard lifecycle)
-        self._init_tray_icon()
-
-        # Start Server & Capture automatically
-        self.start_server()
-
-        # Start Multi-Harmonic Waveform Animation Loop (40 FPS)
-        self._poll_vu_meter()
-
         # Handle window close (minimize to system tray)
         self.protocol("WM_DELETE_WINDOW", self.on_close_window)
+
+        # Schedule background tasks after Tkinter mainloop is active
+        self.after(100, self._init_tray_icon)
+        self.after(200, self.start_server)
+        self.after(400, self._poll_vu_meter)
+        self.after(600, self._poll_adb_status)
 
     def _setup_app_icon(self):
         try:
@@ -542,9 +540,6 @@ class WinAudioGUI(ctk.CTk):
         )
         self.adb_hint.pack(side="left", padx=(10, 0))
 
-        # Start live ADB polling (every 3 seconds)
-        self._poll_adb_status()
-
     def _set_qr_mode(self, mode):
         """Switches between Wi-Fi and USB QR code modes using Windows 11 button states."""
         self.qr_mode = mode
@@ -686,10 +681,13 @@ class WinAudioGUI(ctk.CTk):
     # ── Live ADB USB Device Status Polling (every 3 seconds) ─────────────────
     def _poll_adb_status(self):
         def _check():
-            adb_bin, device_id = get_adb_device()
-            if adb_bin and device_id and device_id != "unauthorized":
-                setup_adb_port_forward(port=self.port)
-            self.after(0, self._update_adb_badge, adb_bin, device_id)
+            try:
+                adb_bin, device_id = get_adb_device()
+                if adb_bin and device_id and device_id != "unauthorized":
+                    setup_adb_port_forward(port=self.port)
+                self.after(0, self._update_adb_badge, adb_bin, device_id)
+            except Exception as e:
+                logger.debug(f"ADB poll error: {e}")
 
         # Run in background thread so it doesn't block the GUI
         threading.Thread(target=_check, daemon=True).start()
@@ -865,5 +863,6 @@ class WinAudioGUI(ctk.CTk):
             pass
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     app = WinAudioGUI()
     app.mainloop()

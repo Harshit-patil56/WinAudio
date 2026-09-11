@@ -1,0 +1,23 @@
+2026-09-11 13:31:09,795 [INFO] WinAudio.Capture: Default Playback Device: Speakers (Realtek(R) Audio)
+2026-09-11 13:31:09,796 [INFO] WinAudio.Capture: Opening WASAPI Loopback: Speakers (Realtek(R) Audio) [Loopback]
+2026-09-11 13:31:09,796 [INFO] WinAudio.Capture: Audio Format: 48000 Hz, 2 Channels, Buffer: 512 frames
+2026-09-11 13:31:09,796 [INFO] WinAudio.Capture: Elevated thread MMCSS priority to 'Pro Audio'
+2026-09-11 13:31:09,816 [INFO] WinAudio.Capture: WASAPI Loopback Capture active and streaming.
+2026-09-11 13:31:10,413 [INFO] WinAudio.ADB: ADB found, but no USB device attached with USB Debugging enabled.
+Exception in thread Thread-1 (_check):
+Traceback (most recent call last):
+  File "threading.py", line 1044, in _bootstrap_inner
+  File "threading.py", line 995, in run
+  File "gui.py", line 692, in _check
+    self.after(0, self._update_adb_badge, adb_bin, device_id)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tkinter\__init__.py", line 873, in after
+  File "tkinter\__init__.py", line 1698, in _register
+RuntimeError: main thread is not in main loop
+2026-09-11 13:31:12,182 [INFO] WinAudio.Zeroconf: mDNS Zeroconf broadcasting 'WinAudio-PC' on 192.168.0.104:8080
+2026-09-11 13:31:12,185 [INFO] WinAudio.Server: WinAudio WebRTC & HTTP Server active on http://0.0.0.0:8080
+customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py:179: UserWarning: CTkLabel Warning: Given image is not CTkImage but <class 'PIL.ImageTk.PhotoImage'>. Image can not be scaled on HighDPI displays, use CTkImage instead.
+
+  warnings.warn(f"{type(self).__name__} Warning: Given image is not CTkImage but {type(image)}. Image can not be scaled on HighDPI displays, use CTkImage instead.\n")
+2026-09-11 13:31:16,335 [INFO] WinAudio.Server: WebSocket client connected from 192.168.0.104 (Total: 1)
+2026-09-11 13:31:16,346 [INFO] WinAudio.Server: Client connection mode set to: wifi (from 192.168.0.104)

@@ -73,7 +73,7 @@ def build():
 
     # 4. Create GitHub Release Package (Folder & Zip)
     print("[4/4] Creating GitHub Release Distribution Package...")
-    release_name = "WinAudio-v1.0.0-Windows-x64"
+    release_name = "WinAudio-v2.0.0-Windows-x64"
     release_dir = os.path.join(base_dir, "dist", release_name)
     os.makedirs(release_dir, exist_ok=True)
 
@@ -89,7 +89,7 @@ def build():
     # Create README.txt with quick-start instructions
     readme_content = """========================================================================
  WinAudio - Low-Latency PC-to-Phone Audio Streaming (Windows 11)
- Version: 1.0.0 (x64)
+ Version: 2.0.0 (x64)
 ========================================================================
 
 QUICK START INSTRUCTIONS:
