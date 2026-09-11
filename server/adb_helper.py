@@ -7,6 +7,28 @@ import logging
 
 logger = logging.getLogger("WinAudio.ADB")
 
+# ── Windows: suppress console window for every adb.exe call ──────────────────
+# When WinAudio.exe is compiled with --noconsole (GUI subsystem), calling any
+# console application (adb.exe) WITHOUT this flag causes Windows to allocate
+# and briefly show a black console window for each subprocess — that is the
+# "open and close" flash the user sees. CREATE_NO_WINDOW (0x08000000) is the
+# Win32 process creation flag that prevents this. capture_output=True only
+# redirects streams; it does NOT suppress the window. These are separate.
+_WIN_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
+
+def _run_adb(args, timeout=5):
+    """
+    Run an adb command suppressing any console window on Windows.
+    Returns CompletedProcess or raises on timeout/error.
+    """
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        creationflags=_WIN_NO_WINDOW
+    )
+
 def find_adb_path():
     """Look for bundled adb first, then executable directory, project root, and finally PATH / SDK."""
     # 1. PyInstaller bundled temp extraction dir (_MEIPASS)
@@ -59,7 +81,7 @@ def get_adb_device():
     if not adb_bin:
         return None, None
     try:
-        res = subprocess.run([adb_bin, "devices"], capture_output=True, text=True, timeout=5)
+        res = _run_adb([adb_bin, "devices"])
         for line in res.stdout.splitlines()[1:]:
             parts = line.strip().split()
             if len(parts) >= 2:
@@ -87,33 +109,70 @@ def get_cached_adb_device(cache_ttl=2.0):
         _last_adb_check = now
     return _cached_adb_device
 
-def setup_adb_port_forward(port=8080):
+# Module-level set tracking ports whose ADB reverse tunnel is confirmed active.
+# Key: (device_id, port). Cleared when device changes or tunnel teardown is detected.
+_active_reverse_tunnels: set = set()
+
+def is_reverse_already_active(adb_bin: str, device_id: str, port: int) -> bool:
+    """
+    Checks 'adb reverse --list' to see if tcp:<port> is already forwarded.
+    Returns True if the tunnel is already set up — no need to call adb reverse again.
+    """
+    # Fast path: we already tracked this tunnel in-process
+    if (device_id, port) in _active_reverse_tunnels:
+        return True
+    # Slow path: ask ADB (only runs once per device+port until we confirm it's gone)
+    try:
+        res = _run_adb([adb_bin, "reverse", "--list"])
+        for line in res.stdout.splitlines():
+            # Output format: "(reverse) tcp:<port>  tcp:<port>"
+            if f"tcp:{port}" in line:
+                _active_reverse_tunnels.add((device_id, port))
+                return True
+    except Exception:
+        pass
+    return False
+
+def setup_adb_port_forward(port=8080, adb_bin=None, device_id=None):
     """
     Sets up ADB REVERSE port forwarding:
       adb reverse tcp:<port> tcp:<port>
 
     This allows the phone to open http://localhost:<port> and have it
     tunneled through the USB cable to the PC server on that port.
+
+    Pass pre-fetched adb_bin / device_id to avoid a redundant subprocess
+    call when the caller has already run get_adb_device().
+
     Returns (success, message).
     """
-    adb_bin, device_id = get_adb_device()
+    global _active_reverse_tunnels
+
+    # Use pre-fetched values if provided, otherwise look them up once.
+    if adb_bin is None or device_id is None:
+        adb_bin, device_id = get_cached_adb_device(cache_ttl=3.0)
 
     if not adb_bin:
         logger.info("ADB executable not found in PATH or standard SDK paths.")
         return False, "ADB not found"
 
-    if not device_id:
+    if not device_id or device_id == "unauthorized":
         logger.info("ADB found, but no USB device attached with USB Debugging enabled.")
+        # If device disappeared, clear our tunnel tracking for this port.
+        _active_reverse_tunnels.discard((device_id, port))
         return False, "No USB device connected"
+
+    # ── GUARDRAIL: skip if the tunnel is already active ──────────────────────
+    if is_reverse_already_active(adb_bin, device_id, port):
+        logger.debug(f"ADB reverse tcp:{port} already active for {device_id} — skipping.")
+        return True, device_id
 
     try:
         # adb reverse makes phone's localhost:<port> → PC's localhost:<port>
-        rev_res = subprocess.run(
-            [adb_bin, "reverse", f"tcp:{port}", f"tcp:{port}"],
-            capture_output=True, text=True, timeout=5
-        )
+        rev_res = _run_adb([adb_bin, "reverse", f"tcp:{port}", f"tcp:{port}"])
         if rev_res.returncode == 0:
-            logger.info(f"ADB reverse tunnel active: phone localhost:{port} → PC:{port} (device: {device_id})")
+            _active_reverse_tunnels.add((device_id, port))
+            logger.info(f"ADB reverse tunnel set up: phone localhost:{port} → PC:{port} (device: {device_id})")
             return True, device_id
         else:
             err = rev_res.stderr.strip() or rev_res.stdout.strip()
@@ -122,6 +181,21 @@ def setup_adb_port_forward(port=8080):
     except Exception as e:
         logger.warning(f"Error running ADB reverse: {e}")
         return False, str(e)
+
+def teardown_adb_port_forward(port=8080):
+    """
+    Removes the ADB reverse tunnel for the given port and clears our tracking.
+    Called when the server stops so the next start will re-establish cleanly.
+    """
+    global _active_reverse_tunnels
+    adb_bin, device_id = get_cached_adb_device(cache_ttl=3.0)
+    if adb_bin and device_id and device_id != "unauthorized":
+        try:
+            _run_adb([adb_bin, "reverse", "--remove", f"tcp:{port}"])
+        except Exception:
+            pass
+    # Clear all tracked tunnels for this port regardless
+    _active_reverse_tunnels = {t for t in _active_reverse_tunnels if t[1] != port}
 
 def get_network_ip_addresses():
     """

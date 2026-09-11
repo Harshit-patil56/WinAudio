@@ -4,6 +4,12 @@ WinAudio - Windows 11 Fluent Design System (WinUI 3) Desktop Control Center
 Crafted with Windows 11 Dark Mode Aesthetics, Dynamic Multi-Harmonic Visualizer,
 WinUI 3 Segmented QR Code Controls (Wi-Fi Network vs USB Localhost), and Persistent System Tray.
 """
+# CRITICAL: freeze_support() MUST be called at module top-level before any other code.
+# PyInstaller --onefile on Windows spawns worker subprocesses that re-import this module.
+# Without this guard at the very top, each worker spawns more workers → infinite fork-bomb / rapid open-close loop.
+import multiprocessing
+multiprocessing.freeze_support()
+
 import os
 import sys
 import time
@@ -11,7 +17,6 @@ import io
 import math
 import asyncio
 import threading
-import multiprocessing
 import logging
 import tkinter as tk
 from tkinter import messagebox
@@ -22,7 +27,7 @@ from pystray import MenuItem as item
 
 from server.audio_capture import WASAPICapture
 from server.network_server import WinAudioNetworkServer
-from server.adb_helper import setup_adb_port_forward, get_network_ip_addresses, get_adb_device
+from server.adb_helper import setup_adb_port_forward, teardown_adb_port_forward, get_network_ip_addresses, get_adb_device
 from server.zeroconf_service import WinAudioBroadcaster
 
 # Windows Event Loop Policy
@@ -667,6 +672,12 @@ class WinAudioGUI(ctk.CTk):
         if self.server and self.server_loop:
             asyncio.run_coroutine_threadsafe(self.server.cleanup(), self.server_loop)
 
+        # Remove ADB reverse tunnel and clear tracking so next start re-establishes cleanly
+        try:
+            teardown_adb_port_forward(port=self.port)
+        except Exception:
+            pass
+
         self.is_streaming = False
         self.toggle_btn.configure(text="Start Server", fg_color=WIN_ACCENT, hover_color=WIN_ACCENT_HOVER, text_color=WIN_ACCENT_TEXT)
         self.status_pill.configure(fg_color="#2B2B2B", border_color="#383838")
@@ -684,14 +695,24 @@ class WinAudioGUI(ctk.CTk):
             try:
                 adb_bin, device_id = get_adb_device()
                 if adb_bin and device_id and device_id != "unauthorized":
-                    setup_adb_port_forward(port=self.port)
-                self.after(0, self._update_adb_badge, adb_bin, device_id)
+                    # Pass pre-fetched values — no second subprocess spawn inside setup_adb_port_forward
+                    setup_adb_port_forward(port=self.port, adb_bin=adb_bin, device_id=device_id)
+                # Guard: only schedule UI update if the Tkinter widget still exists
+                try:
+                    if self.winfo_exists():
+                        self.after(0, self._update_adb_badge, adb_bin, device_id)
+                except Exception:
+                    pass
             except Exception as e:
                 logger.debug(f"ADB poll error: {e}")
 
         # Run in background thread so it doesn't block the GUI
         threading.Thread(target=_check, daemon=True).start()
-        self.after(3000, self._poll_adb_status)
+        try:
+            if self.winfo_exists():
+                self.after(3000, self._poll_adb_status)
+        except Exception:
+            pass
 
     def _update_adb_badge(self, adb_bin, device_id):
         if not adb_bin:
@@ -863,6 +884,7 @@ class WinAudioGUI(ctk.CTk):
             pass
 
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
+    # freeze_support() is already called at module top-level (line 11).
+    # Calling it here again is harmless but unnecessary.
     app = WinAudioGUI()
     app.mainloop()
